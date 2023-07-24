@@ -79,13 +79,15 @@ class LifecycleBox<T> with LifecycleMixin {
   LifecycleBox.attach(
     LifecycleAware lifecycleAware, {
     required this.instance,
-    required this.dispose,
+    this.init,
+    this.dispose,
     this.tag,
   }) {
     lifecycleAware.registerLifecycle(this);
   }
 
-  final VoidCallback dispose;
+  final void Function(T instance)? init;
+  final void Function(T instance)? dispose;
   final String? tag;
   final T instance;
 
@@ -96,6 +98,7 @@ class LifecycleBox<T> with LifecycleMixin {
     if (tag != null) {
       debugPrint('[RAII] Init lifecycle: $tag');
     }
+    init?.call(instance);
   }
 
   @override
@@ -103,7 +106,7 @@ class LifecycleBox<T> with LifecycleMixin {
     if (tag != null) {
       debugPrint('[RAII] Dispose lifecycle: $tag');
     }
-    dispose();
+    dispose?.call(instance);
     super.disposeLifecycle();
   }
 }
