@@ -74,3 +74,36 @@ mixin LifecycleAwareMixin implements LifecycleAware {
     _isLifecycleMounted = false;
   }
 }
+
+class LifecycleBox<T> with LifecycleMixin {
+  LifecycleBox.attach(
+    LifecycleAware lifecycleAware, {
+    required this.instance,
+    required this.dispose,
+    this.tag,
+  }) {
+    lifecycleAware.registerLifecycle(this);
+  }
+
+  final VoidCallback dispose;
+  final String? tag;
+  final T instance;
+
+  @override
+  void initLifecycle() {
+    super.initLifecycle();
+
+    if (tag != null) {
+      debugPrint('[RAII] Init lifecycle: $tag');
+    }
+  }
+
+  @override
+  void disposeLifecycle() {
+    if (tag != null) {
+      debugPrint('[RAII] Dispose lifecycle: $tag');
+    }
+    dispose();
+    super.disposeLifecycle();
+  }
+}
