@@ -14,6 +14,8 @@ abstract class LifecycleAware implements Lifecycle {
   void registerLifecycle(Lifecycle lifecycle);
 }
 
+final alwaysAliveLifecycleAwareContainer = LifecycleAwareContainer();
+
 class LifecycleAwareContainer with LifecycleAwareMixin {}
 
 mixin LifecycleMixin implements Lifecycle {
