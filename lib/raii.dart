@@ -63,6 +63,7 @@ mixin LifecycleAwareMixin implements LifecycleAware {
       lifecycle.initLifecycle();
     }
     _init = true;
+    _isLifecycleMounted = true;
   }
 
   @override
