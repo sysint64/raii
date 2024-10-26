@@ -1,11 +1,14 @@
 name: raii
-description: A new Flutter package project.
-version: 0.0.1
-homepage:
+description: >
+  Resource Acquisition Is Initialization (RAII) pattern for Dart,
+  providing automated lifecycle management of resources.
+version: 0.1.0
+repository: https://github.com/sysint64/raii
+issue_tracker: https://github.com/sysint64/raii/issues
+topics: [raii, lifecycle, resources-management]
 
 environment:
-  sdk: '>=3.0.6 <4.0.0'
-  flutter: ">=1.17.0"
+  sdk: ^3.5.3
 
 dependencies:
   flutter:
@@ -14,4 +17,4 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^5.0.0
