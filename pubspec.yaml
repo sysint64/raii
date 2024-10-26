@@ -5,7 +5,7 @@ description: >
 version: 0.1.0
 repository: https://github.com/sysint64/raii
 issue_tracker: https://github.com/sysint64/raii/issues
-topics: [raii, lifecycle, resources-management]
+topics: [raii, lifecycle, resource-management, state-management]
 
 environment:
   sdk: ^3.5.3
