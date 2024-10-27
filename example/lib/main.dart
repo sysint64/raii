@@ -30,7 +30,7 @@ class RaiiHomePage extends StatefulWidget {
 }
 
 class _RaiiHomePageState extends State<RaiiHomePage>
-    with TickerProviderStateMixin, LifecycleAwareWidgetStateMixin {
+    with TickerProviderStateMixin, RaiiStateMixin {
   // Controllers with automatic lifecycle management
   late final tabController = TabController(length: 3, vsync: this)
       .withLifecycle(this, debugLabel: 'Tabs');
@@ -58,58 +58,54 @@ class _RaiiHomePageState extends State<RaiiHomePage>
   );
 
   @override
-  void onLifecycleAttach() {
+  void initLifecycle() {
+    super.initLifecycle();
+
     // Register app lifecycle observer
-    WidgetsBindingObserverLifecycle.attach(
+    WidgetsBinding.instance.addObserverWithLifeycle(
       this,
       AppLifecycleObserver(onResume: _handleAppResume),
       debugLabel: 'AppLifecycle',
     );
 
     // Listen to tab changes
-    ListenableListenerLifecycle.attach(
+    tabController.addListenerWithLifecycle(
       this,
-      listenable: tabController,
-      onListen: _handleTabChange,
+      _handleTabChange,
       debugLabel: 'TabListener',
     );
 
     // Listen to scroll updates
-    ListenableListenerLifecycle.attach(
+    scrollController.addListenerWithLifecycle(
       this,
-      listenable: scrollController,
-      onListen: _handleScroll,
+      _handleScroll,
       debugLabel: 'ScrollListener',
     );
 
     // Listen to text changes
-    ListenableListenerLifecycle.attach(
+    textController.addListenerWithLifecycle(
       this,
-      listenable: textController,
-      onListen: _handleTextChange,
+      _handleTextChange,
       debugLabel: 'TextListener',
     );
 
     // Listen to focus changes
-    ListenableListenerLifecycle.attach(
+    focusNode.addListenerWithLifecycle(
       this,
-      listenable: focusNode,
-      onListen: _handleFocusChange,
+      _handleFocusChange,
       debugLabel: 'FocusListener',
     );
 
     // Listen to animation updates
-    ListenableListenerLifecycle.attach(
+    animation.addListenerWithLifecycle(
       this,
-      listenable: animation,
-      onListen: _handleAnimationUpdate,
+      _handleAnimationUpdate,
       debugLabel: 'AnimationListener',
     );
   }
 
   void _handleAppResume() {
     debugPrint('App resumed - restoring state');
-    // Restore app state...
   }
 
   void _handleTabChange() {
@@ -145,7 +141,7 @@ class _RaiiHomePageState extends State<RaiiHomePage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Complex RAII Example'),
+        title: const Text('RAII Example'),
         bottom: TabBar(
           controller: tabController,
           tabs: const [

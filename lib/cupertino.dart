@@ -12,18 +12,18 @@ import 'package:raii/raii.dart';
 ///
 /// Example:
 /// ```dart
-/// class MyWidgetState extends State<MyWidget> with LifecycleAwareWidgetStateMixin {
+/// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
 ///   late final tabController = CupertinoTabController(initialIndex: 0)
 ///     .withLifecycle(this, debugLabel: 'CupertinoTabs');
 /// }
 /// ```
 extension CupertinoTabControllerRaiiExt on CupertinoTabController {
-  /// Attaches this tab controller to a [LifecycleAware] object for automatic disposal.
+  /// Attaches this tab controller to a [RaiiLifecycleAware] object for automatic disposal.
   CupertinoTabController withLifecycle(
-    LifecycleAware lifecycleAware, {
+    RaiiLifecycleAware lifecycleAware, {
     String? debugLabel,
   }) {
-    DisposeableLifecycle.attach(
+    RaiiDisposeable.withLifecycle(
       lifecycleAware,
       dispose: dispose,
       debugLabel: debugLabel,
@@ -36,19 +36,19 @@ extension CupertinoTabControllerRaiiExt on CupertinoTabController {
 ///
 /// Example:
 /// ```dart
-/// class MyWidgetState extends State<MyWidget> with LifecycleAwareWidgetStateMixin {
+/// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
 ///   late final tabController = RestorableCupertinoTabController(initialIndex: 0)
 ///     .withLifecycle(this, debugLabel: 'RestorableCupertinoTabs');
 /// }
 /// ```
 extension RestorableCupertinoTabControllerRaiiExt
     on RestorableCupertinoTabController {
-  /// Attaches this restorable tab controller to a [LifecycleAware] object for automatic disposal.
+  /// Attaches this restorable tab controller to a [RaiiLifecycleAware] object for automatic disposal.
   RestorableCupertinoTabController withLifecycle(
-    LifecycleAware lifecycleAware, {
+    RaiiLifecycleAware lifecycleAware, {
     String? debugLabel,
   }) {
-    DisposeableLifecycle.attach(
+    RaiiDisposeable.withLifecycle(
       lifecycleAware,
       dispose: dispose,
       debugLabel: debugLabel,

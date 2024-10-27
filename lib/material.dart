@@ -19,13 +19,13 @@ import 'package:raii/raii.dart';
 /// final dataSource = MyDataSource()
 ///   .withLifecycle(this, debugLabel: 'TableDataSource');
 /// ```
-extension DataTableSourceExt on DataTableSource {
-  /// Attaches this data source to a [LifecycleAware] object for automatic disposal.
+extension DataTableSourceRaiiExt on DataTableSource {
+  /// Attaches this data source to a [RaiiLifecycleAware] object for automatic disposal.
   DataTableSource withLifecycle(
-    LifecycleAware lifecycleAware, {
+    RaiiLifecycleAware lifecycleAware, {
     String? debugLabel,
   }) {
-    DisposeableLifecycle.attach(
+    RaiiDisposeable.withLifecycle(
       lifecycleAware,
       dispose: dispose,
       debugLabel: debugLabel,
@@ -41,13 +41,13 @@ extension DataTableSourceExt on DataTableSource {
 /// final statesController = WidgetStatesController()
 ///   .withLifecycle(this, debugLabel: 'ButtonStates');
 /// ```
-extension WidgetStatesControllerExt on WidgetStatesController {
-  /// Attaches this states controller to a [LifecycleAware] object for automatic disposal.
+extension WidgetStatesControllerRaiiExt on WidgetStatesController {
+  /// Attaches this states controller to a [RaiiLifecycleAware] object for automatic disposal.
   WidgetStatesController withLifecycle(
-    LifecycleAware lifecycleAware, {
+    RaiiLifecycleAware lifecycleAware, {
     String? debugLabel,
   }) {
-    DisposeableLifecycle.attach(
+    RaiiDisposeable.withLifecycle(
       lifecycleAware,
       dispose: dispose,
       debugLabel: debugLabel,
@@ -63,13 +63,13 @@ extension WidgetStatesControllerExt on WidgetStatesController {
 /// final searchController = SearchController()
 ///   .withLifecycle(this, debugLabel: 'SearchBar');
 /// ```
-extension SearchControllerExt on SearchController {
-  /// Attaches this search controller to a [LifecycleAware] object for automatic disposal.
+extension SearchControllerRaiiExt on SearchController {
+  /// Attaches this search controller to a [RaiiLifecycleAware] object for automatic disposal.
   SearchController withLifecycle(
-    LifecycleAware lifecycleAware, {
+    RaiiLifecycleAware lifecycleAware, {
     String? debugLabel,
   }) {
-    DisposeableLifecycle.attach(
+    RaiiDisposeable.withLifecycle(
       lifecycleAware,
       dispose: dispose,
       debugLabel: debugLabel,
@@ -88,13 +88,13 @@ extension SearchControllerExt on SearchController {
 ///     .withLifecycle(this, debugLabel: 'TabBar');
 /// }
 /// ```
-extension TabControllerExt on TabController {
-  /// Attaches this tab controller to a [LifecycleAware] object for automatic disposal.
+extension TabControllerRaiiExt on TabController {
+  /// Attaches this tab controller to a [RaiiLifecycleAware] object for automatic disposal.
   TabController withLifecycle(
-    LifecycleAware lifecycleAware, {
+    RaiiLifecycleAware lifecycleAware, {
     String? debugLabel,
   }) {
-    DisposeableLifecycle.attach(
+    RaiiDisposeable.withLifecycle(
       lifecycleAware,
       dispose: dispose,
       debugLabel: debugLabel,
@@ -110,13 +110,13 @@ extension TabControllerExt on TabController {
 /// final timeValue = RestorableTimeOfDay(TimeOfDay.now())
 ///   .withLifecycle(this, debugLabel: 'SelectedTime');
 /// ```
-extension RestorableTimeOfDayExt on RestorableTimeOfDay {
-  /// Attaches this restorable time value to a [LifecycleAware] object for automatic disposal.
+extension RestorableTimeOfDayRaiiExt on RestorableTimeOfDay {
+  /// Attaches this restorable time value to a [RaiiLifecycleAware] object for automatic disposal.
   RestorableTimeOfDay withLifecycle(
-    LifecycleAware lifecycleAware, {
+    RaiiLifecycleAware lifecycleAware, {
     String? debugLabel,
   }) {
-    DisposeableLifecycle.attach(
+    RaiiDisposeable.withLifecycle(
       lifecycleAware,
       dispose: dispose,
       debugLabel: debugLabel,
@@ -132,13 +132,13 @@ extension RestorableTimeOfDayExt on RestorableTimeOfDay {
 /// final painter = CustomToggleablePainter()
 ///   .withLifecycle(this, debugLabel: 'CheckboxPainter');
 /// ```
-extension ToggleablePainterExt on ToggleablePainter {
-  /// Attaches this toggleable painter to a [LifecycleAware] object for automatic disposal.
+extension ToggleablePainterRaiiExt on ToggleablePainter {
+  /// Attaches this toggleable painter to a [RaiiLifecycleAware] object for automatic disposal.
   ToggleablePainter withLifecycle(
-    LifecycleAware lifecycleAware, {
+    RaiiLifecycleAware lifecycleAware, {
     String? debugLabel,
   }) {
-    DisposeableLifecycle.attach(
+    RaiiDisposeable.withLifecycle(
       lifecycleAware,
       dispose: dispose,
       debugLabel: debugLabel,

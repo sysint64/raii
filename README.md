@@ -33,7 +33,7 @@ dependencies:
 
 ```dart
 class MyWidgetState extends State<MyWidget>
-    with SingleTickerProviderStateMixin, LifecycleAwareWidgetStateMixin {
+    with SingleTickerProviderStateMixin, RaiiStateMixin {
   // Resources are automatically disposed when the widget is disposed
   late final controller = AnimationController(vsync: this)
     .withLifecycle(this, debugLabel: 'MyAnimation');
@@ -41,13 +41,17 @@ class MyWidgetState extends State<MyWidget>
   late final textController = TextEditingController()
     .withLifecycle(this, debugLabel: 'TextInput');
 
+  // Works like initState() but runs when widget is mounted and
+  // context is accesible, you are free to move it to `initState`
+  // if you don't need context access.
   @override
-  void onLifecycleAttach() {
+  void initLifecycle() {
+    super.initLifecycle();
+
     // Register listeners with automatic cleanup
-    ListenableListenerLifecycle.attach(
+    controller.addListenerWithLifecycle(
       this,
-      listenable: controller,
-      onListen: () => setState(() {}),
+      () => setState(() {}),
       debugLabel: 'AnimationListener',
     );
   }
@@ -84,17 +88,18 @@ late final restorableTabs = RestorableCupertinoTabController(initialIndex: 0)
 
 ### Custom Resource Management
 
-#### Using LifecycleBox (Wrapper Approach)
+#### Using RaiiBox (Wrapper Approach)
 
 ```dart
 class MyCustomResource {
   void initialize() { /* ... */ }
+
   void cleanup() { /* ... */ }
 }
 
-// Usage in a widget - cleaner syntax with .attach constructor
-class MyWidgetState extends State<MyWidget> with LifecycleAwareWidgetStateMixin {
-  late final resource = LifecycleBox.attach(
+// Usage in a widget state
+class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
+  late final resource = RaiiBox.withLifecycle(
     this,
     instance: MyCustomResource(),
     init: (r) => r.initialize(),
@@ -105,10 +110,10 @@ class MyWidgetState extends State<MyWidget> with LifecycleAwareWidgetStateMixin 
   // with the widget's lifecycle
 }
 
-// Alternative usage with any LifecycleAware container
-final container = LifecycleAwareContainer();
-final resource = LifecycleBox.attach(
-  container,
+// Alternative usage with RaiiManager
+final raiiManager = RaiiManager();
+final resource = RaiiBox.withLifecycle(
+  raiiManager,
   instance: MyCustomResource(),
   init: (r) => r.initialize(),
   dispose: (r) => r.cleanup(),
@@ -116,22 +121,19 @@ final resource = LifecycleBox.attach(
 );
 
 // When done
-container.disposeLifecycle(); // Will properly clean up the resource
+raiiManager.disposeLifecycle(); // Will properly clean up the resource
 ```
 
 #### Direct Lifecycle Implementation
 
 ```dart
 // Implementing lifecycle directly in your resource class
-class ManagedResource with LifecycleMixin {
+class ManagedResource with RaiiLifecycleMixin {
   late final Socket _socket;
   late final StreamSubscription _subscription;
 
-  // Do not allow construct resource without attaching it to a lifecycle
-  ManagedResource._();
-
   // Named constructor that immediately attaches to a lifecycle manager
-  ManagedResource.attach(LifecycleAware lifecycleAware) {
+  ManagedResource.withLifecycle(RaiiLifecycleAware lifecycleAware) {
     lifecycleAware.registerLifecycle(this);
   }
 
@@ -153,44 +155,36 @@ class ManagedResource with LifecycleMixin {
     _socket.close();
 
     debugPrint('ManagedResource: Cleaned up socket and subscription');
+
     super.disposeLifecycle();
   }
 }
 
 // Usage in a widget - cleaner syntax with .attach constructor
-class MyWidgetState extends State<MyWidget> with LifecycleAwareWidgetStateMixin {
-  late final resource = ManagedResource.attach(this);
+class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
+  late final resource = ManagedResource.withLifecycle(this);
   // The resource will be automatically initialized and disposed
   // with the widget's lifecycle
 }
 
-// Alternative usage with any LifecycleAware container
-final container = LifecycleAwareContainer();
-final resource = ManagedResource.attach(container);
+// Alternative usage with RaiiManager
+final raiiManager = RaiiManager();
+final resource = ManagedResource.withLifecycle(raiiManager);
 
 // When done
-container.disposeLifecycle(); // Will properly clean up the resource
+raiiManager.disposeLifecycle(); // Will properly clean up the resource
 ```
 
-The `LifecycleMixin` approach offers several advantages:
-1. Direct control over resource lifecycle
-2. More granular initialization and cleanup logic
-3. Ability to manage multiple internal resources
-4. Better encapsulation of resource management logic
-5. Type safety and IDE support for lifecycle methods
-6. Clean syntax with `.attach` constructor pattern
-
-Choose `LifecycleBox` when:
+Choose `RaiiBox` when:
 - You need to add lifecycle to an existing class
 - You don't control the resource's source code
-- You have simple init/cleanup requirements
 
-Choose direct `LifecycleMixin` implementation when:
+Choose direct `RaiiLifecycleMixin` implementation when:
 - You're creating a new resource class
-- You need complex initialization/cleanup logic
-- You want to manage multiple internal resources
 - You prefer explicit lifecycle management in your class
-- You want a cleaner API with `.attach` constructor pattern
+- You want a cleaner API with `.withLifecycle` constructor pattern
+
+## More Examples
 
 ### Stream Management
 
@@ -204,35 +198,30 @@ myStream.listen(onData).withLifecycle(
 
 ### Listenable Management
 
-`ListenableListenerLifecycle` class provides automatic management of listeners for any `Listenable` object (such as `ChangeNotifier`, `ValueNotifier`, or custom implementations). It ensures that listeners are properly added during initialization and removed during disposal.
-
 ```dart
-class MyWidgetState extends State<MyWidget> with LifecycleAwareWidgetStateMixin {
+class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
   late final valueNotifier = ValueNotifier<int>(0)
     .withLifecycle(this, debugLabel: 'Counter');
 
   @override
   void onLifecycleAttach() {
     // Simple listener
-    ListenableListenerLifecycle.attach(
+    valueNotifier.addListenerWithLifecycle(
       this,
-      listenable: valueNotifier,
-      onListen: () => setState(() {}),
+      setState(() {}),
       debugLabel: 'ValueNotifierListener',
     );
 
     // Multiple listeners for the same listenable
-    ListenableListenerLifecycle.attach(
+    valueNotifier.addListenerWithLifecycle(
       this,
-      listenable: valueNotifier,
-      onListen: updateUI,
+      updateUI,
       debugLabel: 'UIListener',
     );
 
-    ListenableListenerLifecycle.attach(
+    valueNotifier.addListenerWithLifecycle(
       this,
-      listenable: valueNotifier,
-      onListen: saveToPreferences,
+      saveToPreferences,
       debugLabel: 'StorageListener',
     );
 
@@ -240,10 +229,9 @@ class MyWidgetState extends State<MyWidget> with LifecycleAwareWidgetStateMixin 
     final controller = AnimationController(vsync: this)
       .withLifecycle(this, debugLabel: 'Animation');
 
-    ListenableListenerLifecycle.attach(
+    controller.addListenerWithLifecycle(
       this,
-      listenable: controller,
-      onListen: () => debugPrint('Animation value: ${controller.value}'),
+      () => debugPrint('Animation value: ${controller.value}'),
       debugLabel: 'AnimationListener',
     );
   }
@@ -252,15 +240,15 @@ class MyWidgetState extends State<MyWidget> with LifecycleAwareWidgetStateMixin 
 
 ### App Lifecycle Observer
 
-`WidgetsBindingObserverLifecycle` class automatically handles registration and removal of `WidgetsBindingObserver`s with the `WidgetsBinding` instance. It's particularly useful for managing app lifecycle events, keyboard visibility changes, system settings changes, and other app-wide events.
-
 ```dart
-class MyWidgetState extends State<MyWidget> with LifecycleAwareWidgetStateMixin {
+class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
   @override
-  void onLifecycleAttach() {
+  void initLifecycle() {
+    super.initLifecycle();
+
     // Basic app lifecycle observer
     final observer = AppStateObserver();
-    WidgetsBindingObserverLifecycle.attach(
+    WidgetsBinding.instance.addObserverWithLifeycle(
       this,
       observer,
       debugLabel: 'AppLifecycle',
@@ -297,8 +285,8 @@ class AppStateObserver with WidgetsBindingObserver {
 ### Timer Management
 
 ```dart
-class TimerWidgetState extends State<TimerWidget> with LifecycleAwareWidgetStateMixin {
-  late final periodicTimer = LifecycleBox.attach(
+class TimerWidgetState extends State<TimerWidget> with RaiiStateMixin {
+  late final periodicTimer = RaiiBox.withLifecycle(
     this,
     instance: Timer.periodic(
       Duration(seconds: 1),
@@ -314,8 +302,8 @@ class TimerWidgetState extends State<TimerWidget> with LifecycleAwareWidgetState
 
 ```dart
 // Resources that live for the entire application lifetime
-final globalResource = MyGlobalResource.attach(
-  alwaysAliveLifecycleAwareContainer,
+final globalResource = MyGlobalResource.withLifecycle(
+  alwaysAliveRaiiManager,
 );
 ```
 
@@ -323,18 +311,18 @@ final globalResource = MyGlobalResource.attach(
 
 ### Mixin Order
 
-When using `LifecycleAwareWidgetStateMixin` with `TickerProviderStateMixin`, the order matters:
+When using `RaiiStateMixin` with `TickerProviderStateMixin`, the order matters:
 
 ```dart
 // Correct order:
 class MyWidgetState extends State<MyWidget>
-    with TickerProviderStateMixin, LifecycleAwareWidgetStateMixin {
+    with TickerProviderStateMixin, RaiiStateMixin {
   // ...
 }
 
 // Incorrect order - will cause incorrect resources disposal:
 class MyWidgetState extends State<MyWidget>
-    with LifecycleAwareWidgetStateMixin, TickerProviderStateMixin {
+    with RaiiStateMixin, TickerProviderStateMixin {
   // ...
 }
 ```
@@ -346,6 +334,7 @@ Debug labels help track lifecycle events in the console:
 ```dart
 [RAII] Init lifecycle: MyAnimation
 [RAII] Init lifecycle: TextInput
+...
 [RAII] Dispose lifecycle: TextInput
 [RAII] Dispose lifecycle: MyAnimation
 ```
@@ -354,19 +343,11 @@ Debug labels help track lifecycle events in the console:
 
 ### Core Concepts
 
-- `Lifecycle` - Base interface for objects with manageable lifecycles
-- `LifecycleAware` - Interface for objects that can manage other lifecycles
-- `LifecycleMixin` - Basic lifecycle implementation
-- `LifecycleAwareMixin` - Implementation for managing multiple lifecycles
-- `LifecycleBox` - Container for managing custom resources
-
-### Best Practices
-
-1. Always provide debug labels for easier debugging
-2. Follow the correct mixin order when using with `TickerProviderStateMixin`
-3. Use `late final` for controller declarations to ensure single initialization
-4. Register listeners in `onLifecycleAttach` rather than `initState`
-5. Use `alwaysAliveLifecycleAwareContainer` sparingly, only for truly global resources
+- `RaiiLifecycle` - Base interface for objects with manageable lifecycles
+- `RaiiLifecycleAware` - Interface for objects that aware about other lifecycles
+- `RaiiLifecycleMixin` - Basic lifecycle implementation
+- `RaiiManagerMixin` - Implementation for managing multiple lifecycles, it implements `RaiiLifecycleAware` interface.
+- `RaiiBox` - Container for managing custom resources
 
 ## License
 
