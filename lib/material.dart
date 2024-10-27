@@ -8,33 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:raii/flutter.dart';
 import 'package:raii/raii.dart';
 
-/// Extension for managing [DataTableSource] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// class MyDataSource extends DataTableSource {
-///   // ... implementation
-/// }
-///
-/// final dataSource = MyDataSource()
-///   .withLifecycle(this, debugLabel: 'TableDataSource');
-/// ```
-extension DataTableSourceRaiiExt on DataTableSource {
-  /// Attaches this data source to a [RaiiLifecycleAware] object for automatic disposal.
-  DataTableSource withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
 /// Extension for managing [WidgetStatesController] lifecycle.
 ///
 /// **Example:**
@@ -118,29 +91,6 @@ extension TabControllerRaiiExt on TabController {
 extension RestorableTimeOfDayRaiiExt on RestorableTimeOfDay {
   /// Attaches this restorable time value to a [RaiiLifecycleAware] object for automatic disposal.
   RestorableTimeOfDay withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [ToggleablePainter] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final painter = CustomToggleablePainter()
-///   .withLifecycle(this, debugLabel: 'CheckboxPainter');
-/// ```
-extension ToggleablePainterRaiiExt on ToggleablePainter {
-  /// Attaches this toggleable painter to a [RaiiLifecycleAware] object for automatic disposal.
-  ToggleablePainter withLifecycle(
     RaiiLifecycleAware lifecycleAware, {
     String? debugLabel,
   }) {
