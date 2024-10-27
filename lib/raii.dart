@@ -48,6 +48,8 @@ library;
 
 import 'package:flutter/foundation.dart';
 
+import 'src/debug.dart';
+
 /// Defines the interface for objects that have a lifecycle.
 ///
 /// Implementers of this interface can be managed by [RaiiLifecycleAware] objects,
@@ -230,7 +232,7 @@ class RaiiBox<T> with RaiiLifecycleMixin {
     super.initLifecycle();
 
     if (debugLabel != null) {
-      debugPrint('[RAII] Init lifecycle: $debugLabel');
+      raiiTrace('[RAII] Init lifecycle: $debugLabel');
     }
     init?.call(instance);
   }
@@ -238,7 +240,7 @@ class RaiiBox<T> with RaiiLifecycleMixin {
   @override
   void disposeLifecycle() {
     if (debugLabel != null) {
-      debugPrint('[RAII] Dispose lifecycle: $debugLabel');
+      raiiTrace('[RAII] Dispose lifecycle: $debugLabel');
     }
     dispose?.call(instance);
     super.disposeLifecycle();

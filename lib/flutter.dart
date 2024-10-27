@@ -60,6 +60,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:raii/raii.dart';
+import 'package:raii/src/debug.dart';
 
 /// A mixin that implements [RaiiLifecycleAware] for [StatefulWidget] states.
 ///
@@ -115,7 +116,7 @@ import 'package:raii/raii.dart';
 mixin RaiiStateMixin<T extends StatefulWidget> on State<T>
     implements RaiiLifecycleAware {
   final _registeredLifecycles = <RaiiLifecycle>[];
-  final _initedServices = <RaiiLifecycle>[];
+  final _initedLifecycles = <RaiiLifecycle>[];
 
   bool _attached = false;
   bool _isLifecycleMounted = false;
@@ -138,10 +139,10 @@ mixin RaiiStateMixin<T extends StatefulWidget> on State<T>
   @override
   void didChangeDependencies() {
     // Initialize any pending lifecycle objects
-    for (final service in _registeredLifecycles) {
-      if (!_initedServices.contains(service)) {
-        service.initLifecycle();
-        _initedServices.add(service);
+    for (final lifecycle in _registeredLifecycles) {
+      if (!_initedLifecycles.contains(lifecycle)) {
+        lifecycle.initLifecycle();
+        _initedLifecycles.add(lifecycle);
       }
     }
 
@@ -165,14 +166,13 @@ mixin RaiiStateMixin<T extends StatefulWidget> on State<T>
 
   @override
   void registerLifecycle(RaiiLifecycle lifecycle) {
-    if (mounted && !_initedServices.contains(lifecycle)) {
+    if (!_initedLifecycles.contains(lifecycle)) {
       _registeredLifecycles.add(lifecycle);
-      lifecycle.initLifecycle();
-      _initedServices.add(lifecycle);
-    }
 
-    if (!mounted) {
-      lifecycle.disposeLifecycle();
+      if (mounted) {
+        lifecycle.initLifecycle();
+        _initedLifecycles.add(lifecycle);
+      }
     }
   }
 }
@@ -230,14 +230,14 @@ class RaiiDisposeable with RaiiLifecycleMixin {
     super.initLifecycle();
 
     if (debugLabel != null) {
-      debugPrint('[RAII] Init lifecycle: $debugLabel');
+      raiiTrace('[RAII] Init lifecycle: $debugLabel');
     }
   }
 
   @override
   void disposeLifecycle() {
     if (debugLabel != null) {
-      debugPrint('[RAII] Dispose lifecycle: $debugLabel');
+      raiiTrace('[RAII] Dispose lifecycle: $debugLabel');
     }
     dispose();
     super.disposeLifecycle();
@@ -318,7 +318,7 @@ class RaiiListenableListener<T extends Listenable> with RaiiLifecycleMixin {
   void initLifecycle() {
     super.initLifecycle();
     if (debugLabel != null) {
-      debugPrint('[RAII] Init lifecycle: $debugLabel');
+      raiiTrace('[RAII] Init lifecycle: $debugLabel');
     }
     listenable.addListener(onListen);
   }
@@ -326,7 +326,7 @@ class RaiiListenableListener<T extends Listenable> with RaiiLifecycleMixin {
   @override
   void disposeLifecycle() {
     if (debugLabel != null) {
-      debugPrint('[RAII] Dispose lifecycle: $debugLabel');
+      raiiTrace('[RAII] Dispose lifecycle: $debugLabel');
     }
     listenable.removeListener(onListen);
     super.disposeLifecycle();
@@ -427,7 +427,7 @@ class RaiiWidgetsBindingObserver with RaiiLifecycleMixin {
   void initLifecycle() {
     super.initLifecycle();
     if (debugLabel != null) {
-      debugPrint('[RAII] Init lifecycle: $debugLabel');
+      raiiTrace('[RAII] Init lifecycle: $debugLabel');
     }
     widgetsBinding.addObserver(observer);
   }
@@ -435,7 +435,7 @@ class RaiiWidgetsBindingObserver with RaiiLifecycleMixin {
   @override
   void disposeLifecycle() {
     if (debugLabel != null) {
-      debugPrint('[RAII] Dispose lifecycle: $debugLabel');
+      raiiTrace('[RAII] Dispose lifecycle: $debugLabel');
     }
     widgetsBinding.removeObserver(observer);
     super.disposeLifecycle();
@@ -480,8 +480,6 @@ extension StreamSubscriptionLifecycleRaiiExt<T> on StreamSubscription<T> {
 }
 
 class _StreamSubscriptionRaiiLifecycle<T> with RaiiLifecycleMixin {
-  _StreamSubscriptionRaiiLifecycle(this.sub, this.debugLabel);
-
   _StreamSubscriptionRaiiLifecycle.withLifecycle(
     RaiiLifecycleAware lifecycleAware, {
     required this.sub,
@@ -496,7 +494,7 @@ class _StreamSubscriptionRaiiLifecycle<T> with RaiiLifecycleMixin {
   @override
   void disposeLifecycle() {
     if (debugLabel != null) {
-      debugPrint('[RAII] Dispose lifecycle: $debugLabel');
+      raiiTrace('[RAII] Dispose lifecycle: $debugLabel');
     }
     sub.cancel();
 
@@ -508,7 +506,7 @@ class _StreamSubscriptionRaiiLifecycle<T> with RaiiLifecycleMixin {
     super.initLifecycle();
 
     if (debugLabel != null) {
-      debugPrint('[RAII] Init lifecycle: $debugLabel');
+      raiiTrace('[RAII] Init lifecycle: $debugLabel');
     }
   }
 }
@@ -632,36 +630,12 @@ extension ValueNotifierRaiiExt<T> on ValueNotifier<T> {
   }
 }
 
-/// Extension for managing [RenderEditablePainter] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final painter = CustomRenderEditablePainter()
-///   .withLifecycle(this, debugLabel: 'MyPainter');
-/// ```
-extension RenderEditablePainterRaiiExt on RenderEditablePainter {
-  /// Attaches this painter to a [RaiiLifecycleAware] object for automatic disposal.
-  RenderEditablePainter withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-
-    return this;
-  }
-}
-
 /// Extension for managing [MouseTracker] lifecycle.
 ///
 /// **Example:**
 ///
 /// ```dart
-/// final mouseTracker = MouseTracker()
+/// final mouseTracker = MouseTracker(...)
 ///   .withLifecycle(this, debugLabel: 'MouseTracker');
 /// ```
 extension MouseTrackerRaiiExt on MouseTracker {
@@ -709,7 +683,7 @@ extension ViewportOffsetRaiiExt on ViewportOffset {
 /// **Example:**
 ///
 /// ```dart
-/// final semanticsOwner = SemanticsOwner()
+/// final semanticsOwner = SemanticsOwner(...)
 ///   .withLifecycle(this, debugLabel: 'SemanticsOwner');
 /// ```
 extension SemanticsOwnerRaiiExt on SemanticsOwner {
@@ -1016,58 +990,12 @@ extension PageControllerRaiiExt on PageController {
   }
 }
 
-/// Extension for managing [RestorableProperty] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final property = MyRestorableProperty<String>()
-///   .withLifecycle(this, debugLabel: 'RestorableProperty');
-/// ```
-extension RestorablePropertyRaiiExt<T> on RestorableProperty<T> {
-  /// Attaches this restorable property to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorableProperty<T> withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [RestorableValue] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final value = RestorableString('initial')
-///   .withLifecycle(this, debugLabel: 'RestorableValue');
-/// ```
-extension RestorableValueRaiiExt<T> on RestorableValue<T> {
-  /// Attaches this restorable value to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorableValue<T> withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
 /// Extension for managing [RestorableNum] lifecycle.
 ///
 /// **Example:**
 ///
 /// ```dart
-/// final number = RestorableDouble(0.0)
+/// final number = RestorableNum(0.0)
 ///   .withLifecycle(this, debugLabel: 'RestorableNum');
 /// ```
 extension RestorableNumRaiiExt<T extends num> on RestorableNum<T> {
@@ -1208,9 +1136,9 @@ extension RestorableBoolNRaiiExt on RestorableBoolN {
 /// final quantity = RestorableNumN(null)
 ///   .withLifecycle(this, debugLabel: 'Quantity');
 /// ```
-extension RestorableNumNRaiiExt on RestorableNumN {
+extension RestorableNumNRaiiExt<T extends num?> on RestorableNumN<T> {
   /// Attaches this nullable restorable number to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorableNumN withLifecycle(
+  RestorableNumN<T> withLifecycle(
     RaiiLifecycleAware lifecycleAware, {
     String? debugLabel,
   }) {
@@ -1338,56 +1266,6 @@ extension RestorableDateTimeNRaiiExt on RestorableDateTimeN {
   }
 }
 
-/// Extension for managing [RestorableListenable] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final customListenable = RestorableListenable<MyListenable>(
-///   () => MyListenable(),
-/// ).withLifecycle(this, debugLabel: 'CustomListenable');
-/// ```
-extension RestorableListenableRaiiRaiiExt<T extends Listenable>
-    on RestorableListenable<T> {
-  /// Attaches this restorable listenable to a [RaiiLifecycleAware] object.
-  RestorableListenable<T> withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [RestorableChangeNotifier] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final model = RestorableChangeNotifier<MyModel>(
-///   () => MyModel(),
-/// ).withLifecycle(this, debugLabel: 'Model');
-/// ```
-extension RestorableChangeNotifierRaiiExt<T extends ChangeNotifier>
-    on RestorableChangeNotifier<T> {
-  /// Attaches this restorable change notifier to a [RaiiLifecycleAware] object.
-  RestorableChangeNotifier<T> withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
 /// Extension for managing [RestorableTextEditingController] lifecycle.
 ///
 /// **Example:**
@@ -1443,7 +1321,7 @@ extension RestorableEnumNRaiiRaiiExt<T extends Enum> on RestorableEnumN<T> {
 /// final priority = RestorableEnum<Priority>(Priority.medium)
 ///   .withLifecycle(this, debugLabel: 'Priority');
 /// ```
-extension RestorableEnumRaiiRaiiExt<T extends Enum> on RestorableEnum<T> {
+extension RestorableEnumRaiiExt<T extends Enum> on RestorableEnum<T> {
   /// Attaches this restorable enum to a [RaiiLifecycleAware] object.
   RestorableEnum<T> withLifecycle(
     RaiiLifecycleAware lifecycleAware, {
@@ -1582,30 +1460,6 @@ extension ScrollbarPainterRaiiExt on ScrollbarPainter {
   }
 }
 
-/// Extension for managing [MultiSelectableSelectionContainerDelegate] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final selectionDelegate = MultiSelectableSelectionContainerDelegate()
-///   .withLifecycle(this, debugLabel: 'SelectionDelegate');
-/// ```
-extension MultiSelectableSelectionContainerDelegateRaiiExt
-    on MultiSelectableSelectionContainerDelegate {
-  /// Attaches this selection delegate to a [RaiiLifecycleAware] object.
-  MultiSelectableSelectionContainerDelegate withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
 /// Extension for managing [ShortcutManager] lifecycle.
 ///
 /// **Example:**
@@ -1663,29 +1517,6 @@ extension ShortcutRegistryRaiiExt on ShortcutRegistry {
 extension SnapshotControllerRaiiExt on SnapshotController {
   /// Attaches this snapshot controller to a [RaiiLifecycleAware] object.
   SnapshotController withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [SnapshotPainter] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final snapshotPainter = SnapshotPainter()
-///   .withLifecycle(this, debugLabel: 'SnapshotPainter');
-/// ```
-extension SnapshotPainterRaiiExt on SnapshotPainter {
-  /// Attaches this snapshot painter to a [RaiiLifecycleAware] object.
-  SnapshotPainter withLifecycle(
     RaiiLifecycleAware lifecycleAware, {
     String? debugLabel,
   }) {
