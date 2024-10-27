@@ -10,7 +10,8 @@ import 'package:raii/raii.dart';
 
 /// Extension for managing [DataTableSource] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// class MyDataSource extends DataTableSource {
 ///   // ... implementation
@@ -36,7 +37,8 @@ extension DataTableSourceRaiiExt on DataTableSource {
 
 /// Extension for managing [WidgetStatesController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final statesController = WidgetStatesController()
 ///   .withLifecycle(this, debugLabel: 'ButtonStates');
@@ -58,7 +60,8 @@ extension WidgetStatesControllerRaiiExt on WidgetStatesController {
 
 /// Extension for managing [SearchController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final searchController = SearchController()
 ///   .withLifecycle(this, debugLabel: 'SearchBar');
@@ -80,7 +83,8 @@ extension SearchControllerRaiiExt on SearchController {
 
 /// Extension for managing [TabController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// class MyWidgetState extends State<MyWidget>
 ///     with TickerProviderStateMixin, LifecycleAwareWidgetStateMixin {
@@ -105,7 +109,8 @@ extension TabControllerRaiiExt on TabController {
 
 /// Extension for managing [RestorableTimeOfDay] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final timeValue = RestorableTimeOfDay(TimeOfDay.now())
 ///   .withLifecycle(this, debugLabel: 'SelectedTime');
@@ -127,7 +132,8 @@ extension RestorableTimeOfDayRaiiExt on RestorableTimeOfDay {
 
 /// Extension for managing [ToggleablePainter] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final painter = CustomToggleablePainter()
 ///   .withLifecycle(this, debugLabel: 'CheckboxPainter');

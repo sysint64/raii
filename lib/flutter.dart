@@ -1,18 +1,18 @@
-/// A Flutter library that provides RAII (Resource Acquisition Is Initialization) pattern
-/// implementation for managing the lifecycle of disposable resources.
+/// A Flutter library that provides RAII pattern implementation for managing
+/// the lifecycle of disposable resources.
 ///
 /// This library offers a systematic approach to resource management in Flutter applications
 /// by automatically handling the initialization and disposal of resources. It helps prevent
 /// memory leaks and ensures proper cleanup of resources when they are no longer needed.
 ///
-/// Key features:
+/// **Key features:**
 /// - Automatic resource disposal through lifecycle management
 /// - Fluent API for resource registration
 /// - Debug logging support for lifecycle events
 /// - Type-safe resource management
 /// - Integration with Flutter's widget lifecycle
 ///
-/// The library provides support for many Flutter resources including:
+/// **The library provides support for many Flutter resources including:**
 /// - Controllers (Animation, Text, Scroll, etc.)
 /// - Notifiers and Listeners
 /// - Focus management
@@ -20,7 +20,8 @@
 /// - Platform features
 /// - Painters and Renderers
 ///
-/// Example usage:
+/// **Example usage:**
+///
 /// ```dart
 /// class MyWidgetState extends State<MyWidget>
 ///     with TickerProviderStateMixin, RaiiStateMixin {
@@ -45,11 +46,11 @@
 /// }
 /// ```
 ///
-/// The library follows these principles:
-/// 1. Resources should be acquired and initialized at construction time
-/// 2. Resources should be automatically released when no longer needed
-/// 3. Resource cleanup should be deterministic and predictable
-/// 4. The API should be simple and intuitive to use
+/// **The library follows these principles:**
+/// - Resources should be acquired and initialized at construction time
+/// - Resources should be automatically released when no longer needed
+/// - Resource cleanup should be deterministic and predictable
+/// - The API should be simple and intuitive to use
 library;
 
 import 'dart:async';
@@ -60,7 +61,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:raii/raii.dart';
 
-/// A mixin that implements [LifecycleAwareWithContext] for [StatefulWidget] states.
+/// A mixin that implements [RaiiLifecycleAware] for [StatefulWidget] states.
 ///
 /// This mixin provides lifecycle management capabilities to widget states, automatically
 /// handling initialization and disposal of registered lifecycles in sync with the
@@ -87,7 +88,8 @@ import 'package:raii/raii.dart';
 /// }
 /// ```
 ///
-/// Example usage:
+/// **Example usage:**
+///
 /// ```dart
 /// class MyWidgetState extends
 ///     with TickerProviderStateMixin, RaiiStateMixin {
@@ -181,7 +183,8 @@ mixin RaiiStateMixin<T extends StatefulWidget> on State<T>
 /// extensions. It provides a way to attach any disposable resource to a [RaiiLifecycleAware]
 /// object, ensuring proper cleanup when the lifecycle ends.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// // Direct usage (though extensions are preferred)
 /// final controller = TextEditingController();
@@ -247,7 +250,8 @@ class RaiiDisposeable with RaiiLifecycleMixin {
 /// (such as [ChangeNotifier], [ValueNotifier], or custom implementations). It ensures
 /// that listeners are properly added during initialization and removed during disposal.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// // Basic usage with ValueNotifier
 /// final counter = ValueNotifier(0).withLifecycle(lifecycleAware);
@@ -337,7 +341,8 @@ class RaiiListenableListener<T extends Listenable> with RaiiLifecycleMixin {
 ///
 /// See also [WidgetsBindingRaiiExt].
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// // Basic app lifecycle observer
 /// class AppLifecycleObserver with WidgetsBindingObserver {
@@ -407,6 +412,10 @@ class RaiiWidgetsBindingObserver with RaiiLifecycleMixin {
   /// The observer that will be registered with [WidgetsBinding.instance].
   final WidgetsBindingObserver observer;
 
+  /// Widgets Binding instance.
+  ///
+  /// This instance is typically accessed via [WidgetsBinding.instance], but can be
+  /// injected here for testing or specialized use cases.
   final WidgetsBinding widgetsBinding;
 
   /// Optional label for debugging purposes.
@@ -435,7 +444,8 @@ class RaiiWidgetsBindingObserver with RaiiLifecycleMixin {
 
 /// Extension for managing [StreamSubscription] lifecycle.
 ///
-/// Example usage:
+/// **Example usage:**
+///
 /// ```dart
 /// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
 ///   @override
@@ -505,7 +515,8 @@ class _StreamSubscriptionRaiiLifecycle<T> with RaiiLifecycleMixin {
 
 /// Extension for managing [ScrollController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
 ///   late final scrollController = ScrollController()
@@ -532,7 +543,8 @@ extension ScrollControllerRaiiExt on ScrollController {
 
 /// Extension for managing [AnimationController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// class MyWidgetState extends State<MyWidget>
 ///     with TickerProviderStateMixin, RaiiStateMixin {
@@ -562,7 +574,8 @@ extension AnimationControllerRaiiExt on AnimationController {
 ///
 /// This extension ensures both stopping and disposing of the ticker.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// class MyWidgetState extends State<MyWidget>
 ///     with TickerProviderStateMixin, RaiiStateMixin {
@@ -593,7 +606,8 @@ extension TickerRaiiExt on Ticker {
 
 /// Extension for managing [ValueNotifier] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
 ///   late final counterNotifier = ValueNotifier<int>(0)
@@ -620,7 +634,8 @@ extension ValueNotifierRaiiExt<T> on ValueNotifier<T> {
 
 /// Extension for managing [RenderEditablePainter] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final painter = CustomRenderEditablePainter()
 ///   .withLifecycle(this, debugLabel: 'MyPainter');
@@ -643,7 +658,8 @@ extension RenderEditablePainterRaiiExt on RenderEditablePainter {
 
 /// Extension for managing [MouseTracker] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final mouseTracker = MouseTracker()
 ///   .withLifecycle(this, debugLabel: 'MouseTracker');
@@ -666,7 +682,8 @@ extension MouseTrackerRaiiExt on MouseTracker {
 
 /// Extension for managing [ViewportOffset] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final viewportOffset = ViewportOffset.fixed(0)
 ///   .withLifecycle(this, debugLabel: 'ViewportOffset');
@@ -689,7 +706,8 @@ extension ViewportOffsetRaiiExt on ViewportOffset {
 
 /// Extension for managing [SemanticsOwner] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final semanticsOwner = SemanticsOwner()
 ///   .withLifecycle(this, debugLabel: 'SemanticsOwner');
@@ -712,7 +730,8 @@ extension SemanticsOwnerRaiiExt on SemanticsOwner {
 
 /// Extension for managing [RestorationManager] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final restorationManager = RestorationManager()
 ///   .withLifecycle(this, debugLabel: 'RestorationManager');
@@ -734,7 +753,8 @@ extension RestorationManagerRaiiExt on RestorationManager {
 
 /// Extension for managing [KeepAliveHandle] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final keepAliveHandle = KeepAliveHandle()
 ///   .withLifecycle(this, debugLabel: 'KeepAliveHandle');
@@ -756,7 +776,8 @@ extension KeepAliveHandleRaiiExt on KeepAliveHandle {
 
 /// Extension for managing [DraggableScrollableController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final draggableController = DraggableScrollableController()
 ///   .withLifecycle(this, debugLabel: 'DraggableController');
@@ -779,7 +800,8 @@ extension DraggableScrollableControllerRaiiExt
 
 /// Extension for managing [TextEditingController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final textController = TextEditingController()
 ///   .withLifecycle(this, debugLabel: 'TextController');
@@ -801,7 +823,8 @@ extension TextEditingControllerRaiiExt on TextEditingController {
 
 /// Extension for managing [FocusNode] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
 ///   late final focusNode = FocusNode()
@@ -825,7 +848,8 @@ extension FocusNodeRaiiExt on FocusNode {
 
 /// Extension for managing [FocusScopeNode] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
 ///   final focusScope = FocusScopeNode()
@@ -849,7 +873,8 @@ extension FocusScopeNodeRaiiExt on FocusScopeNode {
 
 /// Extension for managing [FocusManager] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final focusManager = FocusManager()
 ///   .withLifecycle(this, debugLabel: 'FocusManager');
@@ -871,7 +896,8 @@ extension FocusManagerRaiiExt on FocusManager {
 
 /// Extension for managing [TransformationController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
 ///   late final transformationController = TransformationController()
@@ -895,7 +921,8 @@ extension TransformationControllerRaiiExt on TransformationController {
 
 /// Extension for managing [FixedExtentScrollController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
 ///   late final scrollController = FixedExtentScrollController()
@@ -919,7 +946,8 @@ extension FixedExtentScrollControllerRaiiExt on FixedExtentScrollController {
 
 /// Extension for managing [RestorableRouteFuture] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final routeFuture = RestorableRouteFuture<String>(
 ///   onPresent: (navigator, arguments) => navigator.pushNamed('/route'),
@@ -942,7 +970,8 @@ extension RestorableRouteFutureRaiiExt<T> on RestorableRouteFuture<T> {
 
 /// Extension for managing [SliverOverlapAbsorberHandle] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final absorberHandle = SliverOverlapAbsorberHandle()
 ///   .withLifecycle(this, debugLabel: 'AbsorberHandle');
@@ -964,7 +993,8 @@ extension SliverOverlapAbsorberHandleRaiiExt on SliverOverlapAbsorberHandle {
 
 /// Extension for managing [PageController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
 ///   late final pageController = PageController(initialPage: 0)
@@ -988,7 +1018,8 @@ extension PageControllerRaiiExt on PageController {
 
 /// Extension for managing [RestorableProperty] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final property = MyRestorableProperty<String>()
 ///   .withLifecycle(this, debugLabel: 'RestorableProperty');
@@ -1010,7 +1041,8 @@ extension RestorablePropertyRaiiExt<T> on RestorableProperty<T> {
 
 /// Extension for managing [RestorableValue] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final value = RestorableString('initial')
 ///   .withLifecycle(this, debugLabel: 'RestorableValue');
@@ -1032,7 +1064,8 @@ extension RestorableValueRaiiExt<T> on RestorableValue<T> {
 
 /// Extension for managing [RestorableNum] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final number = RestorableDouble(0.0)
 ///   .withLifecycle(this, debugLabel: 'RestorableNum');
@@ -1054,7 +1087,8 @@ extension RestorableNumRaiiExt<T extends num> on RestorableNum<T> {
 
 /// Extension for managing [RestorableDouble] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final price = RestorableDouble(0.0)
 ///   .withLifecycle(this, debugLabel: 'Price');
@@ -1076,7 +1110,8 @@ extension RestorableDoubleRaiiExt on RestorableDouble {
 
 /// Extension for managing [RestorableInt] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final counter = RestorableInt(0)
 ///   .withLifecycle(this, debugLabel: 'Counter');
@@ -1098,7 +1133,8 @@ extension RestorableIntRaiiExt on RestorableInt {
 
 /// Extension for managing [RestorableString] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final name = RestorableString('')
 ///   .withLifecycle(this, debugLabel: 'Name');
@@ -1120,7 +1156,8 @@ extension RestorableStringRaiiExt on RestorableString {
 
 /// Extension for managing [RestorableBool] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final isEnabled = RestorableBool(false)
 ///   .withLifecycle(this, debugLabel: 'IsEnabled');
@@ -1142,7 +1179,8 @@ extension RestorableBoolRaiiExt on RestorableBool {
 
 /// Extension for managing nullable [RestorableBoolN] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final isSelected = RestorableBoolN(null)
 ///   .withLifecycle(this, debugLabel: 'IsSelected');
@@ -1164,7 +1202,8 @@ extension RestorableBoolNRaiiExt on RestorableBoolN {
 
 /// Extension for managing nullable [RestorableNumN] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final quantity = RestorableNumN(null)
 ///   .withLifecycle(this, debugLabel: 'Quantity');
@@ -1186,7 +1225,8 @@ extension RestorableNumNRaiiExt on RestorableNumN {
 
 /// Extension for managing nullable [RestorableDoubleN] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final rating = RestorableDoubleN(null)
 ///   .withLifecycle(this, debugLabel: 'Rating');
@@ -1208,7 +1248,8 @@ extension RestorableDoubleNRaiiExt on RestorableDoubleN {
 
 /// Extension for managing nullable [RestorableIntN] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final index = RestorableIntN(null)
 ///   .withLifecycle(this, debugLabel: 'Index');
@@ -1230,7 +1271,8 @@ extension RestorableIntNRaiiExt on RestorableIntN {
 
 /// Extension for managing nullable [RestorableStringN] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final description = RestorableStringN(null)
 ///   .withLifecycle(this, debugLabel: 'Description');
@@ -1252,7 +1294,8 @@ extension RestorableStringNRaiiExt on RestorableStringN {
 
 /// Extension for managing [RestorableDateTime] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final createdAt = RestorableDateTime(DateTime.now())
 ///   .withLifecycle(this, debugLabel: 'CreatedAt');
@@ -1274,7 +1317,8 @@ extension RestorableDateTimeRaiiExt on RestorableDateTime {
 
 /// Extension for managing nullable [RestorableDateTimeN] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final lastModified = RestorableDateTimeN(null)
 ///   .withLifecycle(this, debugLabel: 'LastModified');
@@ -1296,7 +1340,8 @@ extension RestorableDateTimeNRaiiExt on RestorableDateTimeN {
 
 /// Extension for managing [RestorableListenable] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final customListenable = RestorableListenable<MyListenable>(
 ///   () => MyListenable(),
@@ -1320,7 +1365,8 @@ extension RestorableListenableRaiiRaiiExt<T extends Listenable>
 
 /// Extension for managing [RestorableChangeNotifier] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final model = RestorableChangeNotifier<MyModel>(
 ///   () => MyModel(),
@@ -1344,7 +1390,8 @@ extension RestorableChangeNotifierRaiiExt<T extends ChangeNotifier>
 
 /// Extension for managing [RestorableTextEditingController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final textController = RestorableTextEditingController(text: 'Initial')
 ///   .withLifecycle(this, debugLabel: 'TextController');
@@ -1367,7 +1414,8 @@ extension RestorableTextEditingControllerRaiiExt
 
 /// Extension for managing nullable [RestorableEnumN] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final status = RestorableEnumN<Status>(null)
 ///   .withLifecycle(this, debugLabel: 'Status');
@@ -1389,7 +1437,8 @@ extension RestorableEnumNRaiiRaiiExt<T extends Enum> on RestorableEnumN<T> {
 
 /// Extension for managing [RestorableEnum] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final priority = RestorableEnum<Priority>(Priority.medium)
 ///   .withLifecycle(this, debugLabel: 'Priority');
@@ -1411,7 +1460,8 @@ extension RestorableEnumRaiiRaiiExt<T extends Enum> on RestorableEnum<T> {
 
 /// Extension for managing [PlatformRouteInformationProvider] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final routeProvider = PlatformRouteInformationProvider(
 ///   initialRouteInformation: RouteInformation(location: '/'),
@@ -1435,7 +1485,8 @@ extension PlatformRouteInformationProviderRaiiExt
 
 /// Extension for managing [TrackingScrollController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final trackingController = TrackingScrollController()
 ///   .withLifecycle(this, debugLabel: 'TrackingController');
@@ -1457,7 +1508,8 @@ extension TrackingScrollControllerRaiiExt on TrackingScrollController {
 
 /// Extension for managing [ScrollPosition] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final scrollPosition = ScrollPosition(
 ///   physics: AlwaysScrollableScrollPhysics(),
@@ -1481,7 +1533,8 @@ extension ScrollPositionRaiiExt on ScrollPosition {
 
 /// Extension for managing [ScrollPositionWithSingleContext] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final scrollPosition = ScrollPositionWithSingleContext(
 ///   physics: AlwaysScrollableScrollPhysics(),
@@ -1506,7 +1559,8 @@ extension ScrollPositionWithSingleContextRaiiExt
 
 /// Extension for managing [ScrollbarPainter] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final scrollbarPainter = ScrollbarPainter(
 ///   color: Colors.grey,
@@ -1530,7 +1584,8 @@ extension ScrollbarPainterRaiiExt on ScrollbarPainter {
 
 /// Extension for managing [MultiSelectableSelectionContainerDelegate] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final selectionDelegate = MultiSelectableSelectionContainerDelegate()
 ///   .withLifecycle(this, debugLabel: 'SelectionDelegate');
@@ -1553,7 +1608,8 @@ extension MultiSelectableSelectionContainerDelegateRaiiExt
 
 /// Extension for managing [ShortcutManager] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final shortcuts = ShortcutManager()
 ///   .withLifecycle(this, debugLabel: 'ShortcutManager');
@@ -1575,7 +1631,8 @@ extension ShortcutManagerRaiiExt on ShortcutManager {
 
 /// Extension for managing [ShortcutRegistry] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final registry = ShortcutRegistry()
 ///   .withLifecycle(this, debugLabel: 'ShortcutRegistry');
@@ -1597,7 +1654,8 @@ extension ShortcutRegistryRaiiExt on ShortcutRegistry {
 
 /// Extension for managing [SnapshotController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final snapshotController = SnapshotController()
 ///   .withLifecycle(this, debugLabel: 'SnapshotController');
@@ -1619,7 +1677,8 @@ extension SnapshotControllerRaiiExt on SnapshotController {
 
 /// Extension for managing [SnapshotPainter] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final snapshotPainter = SnapshotPainter()
 ///   .withLifecycle(this, debugLabel: 'SnapshotPainter');
@@ -1641,7 +1700,8 @@ extension SnapshotPainterRaiiExt on SnapshotPainter {
 
 /// Extension for managing [ClipboardStatusNotifier] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final clipboardStatus = ClipboardStatusNotifier()
 ///   .withLifecycle(this, debugLabel: 'ClipboardStatus');
@@ -1663,7 +1723,8 @@ extension ClipboardStatusNotifierRaiiExt on ClipboardStatusNotifier {
 
 /// Extension for managing [UndoHistoryController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// final undoController = UndoHistoryController()
 ///   .withLifecycle(this, debugLabel: 'UndoController');
@@ -1706,7 +1767,8 @@ extension ListenableRaiiExt on Listenable {
 /// Extension that provides a more direct way to add lifecycle-managed
 /// observers to the [WidgetsBinding] instance.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// // Basic app lifecycle observer
 /// class AppLifecycleObserver with WidgetsBindingObserver {
@@ -1755,7 +1817,7 @@ extension ListenableRaiiExt on Listenable {
 /// WidgetsBinding.instance.addObserverWithLifeycle(
 ///   lifecycleAware,
 ///   settingsObserver,
-//  );
+/// );
 /// ```
 extension WidgetsBindingRaiiExt on WidgetsBinding {
   /// Adds a listener that will be automatically removed

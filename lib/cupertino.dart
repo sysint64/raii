@@ -10,7 +10,8 @@ import 'package:raii/raii.dart';
 
 /// Extension for managing [CupertinoTabController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
 ///   late final tabController = CupertinoTabController(initialIndex: 0)
@@ -34,7 +35,8 @@ extension CupertinoTabControllerRaiiExt on CupertinoTabController {
 
 /// Extension for managing [RestorableCupertinoTabController] lifecycle.
 ///
-/// Example:
+/// **Example:**
+///
 /// ```dart
 /// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
 ///   late final tabController = RestorableCupertinoTabController(initialIndex: 0)

@@ -6,11 +6,12 @@
 /// ensuring that resources are properly managed throughout their lifetime.
 ///
 /// The library follows these core principles:
-/// 1. Explicit lifecycle management through clear interfaces
-/// 2. Hierarchical resource management where parent objects manage their children
-/// 3. Automatic cleanup of resources when they're no longer needed
+/// - Explicit lifecycle management through clear interfaces
+/// - Hierarchical resource management where parent objects manage their children
+/// - Automatic cleanup of resources when they're no longer needed
 ///
-/// Basic usage:
+/// **Basic usage:**
+///
 /// ```dart
 /// // Create a lifecycle container
 /// final raiiManager = RaiiManager();
@@ -87,7 +88,18 @@ abstract class RaiiLifecycleAware implements RaiiLifecycle {
 ///
 /// Useful for managing resources that need to exist
 /// for the entire application lifetime.
-final alwaysAliveRaiiManager = RaiiManager();
+final alwaysAliveRaiiManager = _AlwaysAliveRaiiManager();
+
+class _AlwaysAliveRaiiManager with RaiiManagerMixin {
+  @override
+  // ignore: must_call_super
+  void disposeLifecycle() {
+    throw StateError(
+      'This manager cannot be disposed as it must remain active '
+      'throughout the entire application lifecycle',
+    );
+  }
+}
 
 /// A concrete implementation of [RaiiLifecycleAware] that can manage multiple lifecycles.
 ///
@@ -108,12 +120,7 @@ mixin RaiiLifecycleMixin implements RaiiLifecycle {
   @mustCallSuper
   void initLifecycle() {
     if (_isLifecycleMounted) {
-      // Detect double initialization.
-      // Do not throw an exception as it's not critical here.
-      debugPrint('[RAII: Wraning] Already has been initialized');
-      debugPrint(StackTrace.current.toString());
-
-      return;
+      throw StateError('Init when lifecycle is already mounted');
     }
 
     _isLifecycleMounted = true;
@@ -123,8 +130,7 @@ mixin RaiiLifecycleMixin implements RaiiLifecycle {
   @mustCallSuper
   void disposeLifecycle() {
     if (!_isLifecycleMounted) {
-      // Detected double dispose.
-      throw StateError('Already has been disposed');
+      throw StateError('Dispose when lifecycle is not mounted');
     }
 
     _isLifecycleMounted = false;
@@ -137,8 +143,7 @@ mixin RaiiLifecycleMixin implements RaiiLifecycle {
 /// This mixin maintains a list of registered lifecycles and ensures they are properly
 /// initialized and disposed of according to the container's lifecycle.
 mixin RaiiManagerMixin implements RaiiLifecycleAware {
-  @visibleForTesting
-  final registeredLifecycles = <RaiiLifecycle>[];
+  final _registeredLifecycles = <RaiiLifecycle>[];
   bool _init = false;
   bool _isLifecycleMounted = false;
 
@@ -148,7 +153,11 @@ mixin RaiiManagerMixin implements RaiiLifecycleAware {
   @override
   @mustCallSuper
   void registerLifecycle(RaiiLifecycle lifecycle) {
-    registeredLifecycles.add(lifecycle);
+    if (!_isLifecycleMounted && _init) {
+      throw StateError('Try to register lifecycle when manager is disposed');
+    }
+
+    _registeredLifecycles.add(lifecycle);
 
     if (_init) {
       lifecycle.initLifecycle();
@@ -158,7 +167,11 @@ mixin RaiiManagerMixin implements RaiiLifecycleAware {
   @override
   @mustCallSuper
   void initLifecycle() {
-    for (final lifecycle in registeredLifecycles) {
+    if (_isLifecycleMounted) {
+      throw StateError('Init when lifecycle is already mounted');
+    }
+
+    for (final lifecycle in _registeredLifecycles) {
       lifecycle.initLifecycle();
     }
     _init = true;
@@ -168,11 +181,15 @@ mixin RaiiManagerMixin implements RaiiLifecycleAware {
   @override
   @mustCallSuper
   void disposeLifecycle() {
-    for (final lifecycle in registeredLifecycles) {
+    if (!_isLifecycleMounted) {
+      throw StateError('Dispose when lifecycle is not mounted');
+    }
+
+    for (final lifecycle in _registeredLifecycles) {
       lifecycle.disposeLifecycle();
     }
 
-    registeredLifecycles.clear();
+    _registeredLifecycles.clear();
     _isLifecycleMounted = false;
   }
 }
