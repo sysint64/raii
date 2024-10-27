@@ -6,6 +6,7 @@
 /// memory leaks and ensures proper cleanup of resources when they are no longer needed.
 ///
 /// **Key features:**
+///
 /// - Automatic resource disposal through lifecycle management
 /// - Fluent API for resource registration
 /// - Debug logging support for lifecycle events
@@ -13,12 +14,11 @@
 /// - Integration with Flutter's widget lifecycle
 ///
 /// **The library provides support for many Flutter resources including:**
+///
 /// - Controllers (Animation, Text, Scroll, etc.)
 /// - Notifiers and Listeners
-/// - Focus management
-/// - Restoration framework
-/// - Platform features
-/// - Painters and Renderers
+/// - Streams
+/// - App lifecycle
 ///
 /// **Example usage:**
 ///
@@ -47,6 +47,7 @@
 /// ```
 ///
 /// **The library follows these principles:**
+///
 /// - Resources should be acquired and initialized at construction time
 /// - Resources should be automatically released when no longer needed
 /// - Resource cleanup should be deterministic and predictable

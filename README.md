@@ -13,10 +13,8 @@ A Flutter package that provides RAII (Resource Acquisition Is Initialization) pa
 - Built-in support for common Flutter resources:
   - Controllers (Animation, Text, Scroll, etc.)
   - Notifiers and Listeners
-  - Focus management
-  - Restoration framework
-  - Platform features
-  - Painters and Renderers
+  - Streams
+  - App lifecycle
 
 ## Getting Started
 
