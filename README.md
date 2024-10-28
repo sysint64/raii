@@ -31,8 +31,9 @@ dependencies:
 
 ```dart
 class MyWidgetState extends State<MyWidget>
+    // Add RaiiStateMixin
     with SingleTickerProviderStateMixin, RaiiStateMixin {
-  // Resources are automatically disposed when the widget is disposed
+  // Resources are automatically disposed together with widget
   late final controller = AnimationController(vsync: this)
     .withLifecycle(this, debugLabel: 'MyAnimation');
 
@@ -119,7 +120,8 @@ final resource = RaiiBox.withLifecycle(
 );
 
 // When done
-raiiManager.disposeLifecycle(); // Will properly clean up the resource
+// Will properly clean up the resource
+raiiManager.disposeLifecycle();
 ```
 
 #### Direct Lifecycle Implementation
@@ -170,7 +172,8 @@ final raiiManager = RaiiManager();
 final resource = ManagedResource.withLifecycle(raiiManager);
 
 // When done
-raiiManager.disposeLifecycle(); // Will properly clean up the resource
+// Will properly clean up the resource
+raiiManager.disposeLifecycle();
 ```
 
 Choose `RaiiBox` when:
@@ -246,6 +249,9 @@ class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
 
     // Basic app lifecycle observer
     final observer = AppStateObserver();
+
+    // raii addObserver alternative that allows you to
+    // attach to the state's lifecycle
     WidgetsBinding.instance.addObserverWithLifeycle(
       this,
       observer,
@@ -330,6 +336,16 @@ class MyWidgetState extends State<MyWidget>
 Debug labels help track lifecycle events in the console:
 
 ```dart
+late final animationController = AnimationController(vsync: this)
+  .withLifecycle(this, debugLabel: 'MyAnimation');
+
+late final textInput = EditingTextController()
+  .withLifecycle(this, debugLabel: 'TextInput');
+```
+
+**Console output:**
+
+```
 [RAII] Init lifecycle: MyAnimation
 [RAII] Init lifecycle: TextInput
 ...
@@ -342,9 +358,9 @@ Debug labels help track lifecycle events in the console:
 ### Core Concepts
 
 - `RaiiLifecycle` - Base interface for objects with manageable lifecycles
-- `RaiiLifecycleAware` - Interface for objects that aware about other lifecycles
-- `RaiiLifecycleMixin` - Basic lifecycle implementation
-- `RaiiManagerMixin` - Implementation for managing multiple lifecycles, it implements `RaiiLifecycleAware` interface.
+- `RaiiLifecycleAware` - Interface for objects that aware about other lifecycles typically used for managing multiple lifecycles
+- `RaiiLifecycleMixin` - Mixin that helps add basic lifecycle implementation
+- `RaiiManagerMixin` - Mixin that helps implementat for managing multiple lifecycles, it implements `RaiiLifecycleAware` interface.
 - `RaiiBox` - Container for managing custom resources
 
 ## License
