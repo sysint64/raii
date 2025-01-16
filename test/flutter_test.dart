@@ -63,12 +63,12 @@ class _UserModel extends ChangeNotifier {
 class _TestWidget extends StatefulWidget {
   const _TestWidget({
     this.onCreateState,
-    super.key,
   });
 
   final void Function(_TestWidgetState state)? onCreateState;
 
   @override
+  // ignore: no_logic_in_create_state
   _TestWidgetState createState() {
     final state = _TestWidgetState();
     onCreateState?.call(state);
@@ -470,7 +470,7 @@ void main() {
     });
 
     test('ScrollController.withLifecycle', () {
-      final resource = ScrollController().withLifecycle(
+      ScrollController().withLifecycle(
         myRaiiManager,
         debugLabel: 'ScrollController',
       );
@@ -488,7 +488,7 @@ void main() {
     });
 
     test('AnimationController.withLifecycle', () {
-      final resource = AnimationController(
+      AnimationController(
         vsync: _MockTickerProvider(),
       ).withLifecycle(
         myRaiiManager,
@@ -508,7 +508,7 @@ void main() {
     });
 
     test('Ticker.withLifecycle', () {
-      final resource = Ticker((_) {}).withLifecycle(
+      Ticker((_) {}).withLifecycle(
         myRaiiManager,
         debugLabel: 'Ticker',
       );
@@ -526,7 +526,7 @@ void main() {
     });
 
     test('MouseTracker.withLifecycle', () {
-      final resource = MouseTracker((_, __) => HitTestResult()).withLifecycle(
+      MouseTracker((_, __) => HitTestResult()).withLifecycle(
         myRaiiManager,
         debugLabel: 'MouseTracker',
       );
@@ -544,7 +544,7 @@ void main() {
     });
 
     test('ViewportOffset.withLifecycle', () {
-      final resource = ViewportOffset.fixed(0).withLifecycle(
+      ViewportOffset.fixed(0).withLifecycle(
         myRaiiManager,
         debugLabel: 'ViewportOffset',
       );
@@ -562,7 +562,7 @@ void main() {
     });
 
     test('SemanticsOwner.withLifecycle', () {
-      final resource = SemanticsOwner(
+      SemanticsOwner(
         onSemanticsUpdate: (_) {},
       ).withLifecycle(
         myRaiiManager,
@@ -582,7 +582,7 @@ void main() {
     });
 
     test('RestorationManager.withLifecycle', () {
-      final resource = RestorationManager().withLifecycle(
+      RestorationManager().withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorationManager',
       );
@@ -600,7 +600,7 @@ void main() {
     });
 
     test('KeepAliveHandle.withLifecycle', () {
-      final resource = KeepAliveHandle().withLifecycle(
+      KeepAliveHandle().withLifecycle(
         myRaiiManager,
         debugLabel: 'KeepAliveHandle',
       );
@@ -618,7 +618,7 @@ void main() {
     });
 
     test('DraggableScrollableController.withLifecycle', () {
-      final resource = DraggableScrollableController().withLifecycle(
+      DraggableScrollableController().withLifecycle(
         myRaiiManager,
         debugLabel: 'DraggableScrollableController',
       );
@@ -636,7 +636,7 @@ void main() {
     });
 
     test('TextEditingController.withLifecycle', () {
-      final resource = TextEditingController().withLifecycle(
+      TextEditingController().withLifecycle(
         myRaiiManager,
         debugLabel: 'TextEditingController',
       );
@@ -654,7 +654,7 @@ void main() {
     });
 
     test('FocusNode.withLifecycle', () {
-      final resource = FocusNode().withLifecycle(
+      FocusNode().withLifecycle(
         myRaiiManager,
         debugLabel: 'FocusNode',
       );
@@ -672,7 +672,7 @@ void main() {
     });
 
     test('FocusScopeNode.withLifecycle', () {
-      final resource = FocusScopeNode().withLifecycle(
+      FocusScopeNode().withLifecycle(
         myRaiiManager,
         debugLabel: 'FocusScopeNode',
       );
@@ -690,7 +690,7 @@ void main() {
     });
 
     test('FocusManager.withLifecycle', () {
-      final resource = FocusManager().withLifecycle(
+      FocusManager().withLifecycle(
         myRaiiManager,
         debugLabel: 'FocusManager',
       );
@@ -708,7 +708,7 @@ void main() {
     });
 
     test('TransformationController.withLifecycle', () {
-      final resource = TransformationController().withLifecycle(
+      TransformationController().withLifecycle(
         myRaiiManager,
         debugLabel: 'TransformationController',
       );
@@ -726,7 +726,7 @@ void main() {
     });
 
     test('FixedExtentScrollController.withLifecycle', () {
-      final resource = FixedExtentScrollController().withLifecycle(
+      FixedExtentScrollController().withLifecycle(
         myRaiiManager,
         debugLabel: 'FixedExtentScrollController',
       );
@@ -744,7 +744,7 @@ void main() {
     });
 
     test('RestorableRouteFuture.withLifecycle', () {
-      final resource = RestorableRouteFuture(
+      RestorableRouteFuture(
         onPresent: (_, __) => "",
       ).withLifecycle(
         myRaiiManager,
@@ -764,7 +764,7 @@ void main() {
     });
 
     test('SliverOverlapAbsorberHandle.withLifecycle', () {
-      final resource = SliverOverlapAbsorberHandle().withLifecycle(
+      SliverOverlapAbsorberHandle().withLifecycle(
         myRaiiManager,
         debugLabel: 'SliverOverlapAbsorberHandle',
       );
@@ -782,7 +782,7 @@ void main() {
     });
 
     test('PageController.withLifecycle', () {
-      final resource = PageController().withLifecycle(
+      PageController().withLifecycle(
         myRaiiManager,
         debugLabel: 'PageController',
       );
@@ -800,7 +800,7 @@ void main() {
     });
 
     test('RestorableNum.withLifecycle', () {
-      final resource = RestorableNum(0.0).withLifecycle(
+      RestorableNum(0.0).withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableNum',
       );
@@ -818,7 +818,7 @@ void main() {
     });
 
     test('RestorableDouble.withLifecycle', () {
-      final resource = RestorableDouble(0.0).withLifecycle(
+      RestorableDouble(0.0).withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableDouble',
       );
@@ -836,7 +836,7 @@ void main() {
     });
 
     test('RestorableInt.withLifecycle', () {
-      final resource = RestorableInt(0).withLifecycle(
+      RestorableInt(0).withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableInt',
       );
@@ -854,7 +854,7 @@ void main() {
     });
 
     test('RestorableString.withLifecycle', () {
-      final resource = RestorableString('').withLifecycle(
+      RestorableString('').withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableString',
       );
@@ -872,7 +872,7 @@ void main() {
     });
 
     test('RestorableBool.withLifecycle', () {
-      final resource = RestorableBool(true).withLifecycle(
+      RestorableBool(true).withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableBool',
       );
@@ -890,7 +890,7 @@ void main() {
     });
 
     test('RestorableBoolN.withLifecycle', () {
-      final resource = RestorableBoolN(null).withLifecycle(
+      RestorableBoolN(null).withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableBoolN',
       );
@@ -908,7 +908,7 @@ void main() {
     });
 
     test('RestorableNumN.withLifecycle', () {
-      final resource = RestorableNumN(null).withLifecycle(
+      RestorableNumN(null).withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableNumN',
       );
@@ -926,7 +926,7 @@ void main() {
     });
 
     test('RestorableDoubleN.withLifecycle', () {
-      final resource = RestorableDoubleN(null).withLifecycle(
+      RestorableDoubleN(null).withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableDoubleN',
       );
@@ -944,7 +944,7 @@ void main() {
     });
 
     test('RestorableIntN.withLifecycle', () {
-      final resource = RestorableIntN(null).withLifecycle(
+      RestorableIntN(null).withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableIntN',
       );
@@ -962,7 +962,7 @@ void main() {
     });
 
     test('RestorableStringN.withLifecycle', () {
-      final resource = RestorableStringN(null).withLifecycle(
+      RestorableStringN(null).withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableStringN',
       );
@@ -980,7 +980,7 @@ void main() {
     });
 
     test('RestorableDateTime.withLifecycle', () {
-      final resource = RestorableDateTime(DateTime.now()).withLifecycle(
+      RestorableDateTime(DateTime.now()).withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableDateTime',
       );
@@ -998,7 +998,7 @@ void main() {
     });
 
     test('RestorableDateTimeN.withLifecycle', () {
-      final resource = RestorableDateTimeN(null).withLifecycle(
+      RestorableDateTimeN(null).withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableDateTimeN',
       );
@@ -1016,7 +1016,7 @@ void main() {
     });
 
     test('RestorableTextEditingController.withLifecycle', () {
-      final resource = RestorableTextEditingController().withLifecycle(
+      RestorableTextEditingController().withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableTextEditingController',
       );
@@ -1034,7 +1034,7 @@ void main() {
     });
 
     test('RestorableEnumN.withLifecycle', () {
-      final resource = _MockRestorableEnumN().withLifecycle(
+      _MockRestorableEnumN().withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableEnumN',
       );
@@ -1052,7 +1052,7 @@ void main() {
     });
 
     test('RestorableEnum.withLifecycle', () {
-      final resource = _MockRestorableEnum().withLifecycle(
+      _MockRestorableEnum().withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableEnum',
       );
@@ -1070,7 +1070,7 @@ void main() {
     });
 
     test('RestorableEnum.withLifecycle', () {
-      final resource = _MockRestorableEnum().withLifecycle(
+      _MockRestorableEnum().withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableEnum',
       );
@@ -1088,7 +1088,7 @@ void main() {
     });
 
     test('PlatformRouteInformationProvider.withLifecycle', () {
-      final resource = _MockPlatformRouteInformationProvider().withLifecycle(
+      _MockPlatformRouteInformationProvider().withLifecycle(
         myRaiiManager,
         debugLabel: 'PlatformRouteInformationProvider',
       );
@@ -1106,7 +1106,7 @@ void main() {
     });
 
     test('TrackingScrollController.withLifecycle', () {
-      final resource = TrackingScrollController().withLifecycle(
+      TrackingScrollController().withLifecycle(
         myRaiiManager,
         debugLabel: 'TrackingScrollController',
       );
@@ -1124,7 +1124,7 @@ void main() {
     });
 
     test('ScrollPosition.withLifecycle', () {
-      final resource = _MockScrollPosition().withLifecycle(
+      _MockScrollPosition().withLifecycle(
         myRaiiManager,
         debugLabel: 'ScrollPosition',
       );
@@ -1142,7 +1142,7 @@ void main() {
     });
 
     test('ScrollPositionWithSingleContext.withLifecycle', () {
-      final resource = _MockScrollPositionWithSingleContext().withLifecycle(
+      _MockScrollPositionWithSingleContext().withLifecycle(
         myRaiiManager,
         debugLabel: 'ScrollPositionWithSingleContext',
       );
@@ -1160,7 +1160,7 @@ void main() {
     });
 
     test('ScrollbarPainter.withLifecycle', () {
-      final resource = _MockScrollbarPainter().withLifecycle(
+      _MockScrollbarPainter().withLifecycle(
         myRaiiManager,
         debugLabel: 'ScrollbarPainter',
       );
@@ -1178,7 +1178,7 @@ void main() {
     });
 
     test('ShortcutManager.withLifecycle', () {
-      final resource = ShortcutManager().withLifecycle(
+      ShortcutManager().withLifecycle(
         myRaiiManager,
         debugLabel: 'ShortcutManager',
       );
@@ -1196,7 +1196,7 @@ void main() {
     });
 
     test('ShortcutRegistry.withLifecycle', () {
-      final resource = ShortcutRegistry().withLifecycle(
+      ShortcutRegistry().withLifecycle(
         myRaiiManager,
         debugLabel: 'ShortcutRegistry',
       );
@@ -1214,7 +1214,7 @@ void main() {
     });
 
     test('SnapshotController.withLifecycle', () {
-      final resource = SnapshotController().withLifecycle(
+      SnapshotController().withLifecycle(
         myRaiiManager,
         debugLabel: 'SnapshotController',
       );
@@ -1232,7 +1232,7 @@ void main() {
     });
 
     test('ClipboardStatusNotifier.withLifecycle', () {
-      final resource = ClipboardStatusNotifier().withLifecycle(
+      ClipboardStatusNotifier().withLifecycle(
         myRaiiManager,
         debugLabel: 'ClipboardStatusNotifier',
       );
@@ -1250,7 +1250,7 @@ void main() {
     });
 
     test('UndoHistoryController.withLifecycle', () {
-      final resource = UndoHistoryController().withLifecycle(
+      UndoHistoryController().withLifecycle(
         myRaiiManager,
         debugLabel: 'UndoHistoryController',
       );

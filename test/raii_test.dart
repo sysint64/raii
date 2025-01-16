@@ -277,7 +277,7 @@ void main() {
       () {
         String data = '';
 
-        final resource = RaiiBox.withLifecycle(
+        RaiiBox.withLifecycle(
           myRaiiManager,
           instance: 'Resource',
           debugLabel: 'Resource',
@@ -296,7 +296,7 @@ void main() {
       () {
         String data = '';
 
-        final resource = RaiiBox.withLifecycle(
+        RaiiBox.withLifecycle(
           myRaiiManager,
           instance: 'Resource',
           debugLabel: 'Resource',

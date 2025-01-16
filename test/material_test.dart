@@ -17,7 +17,7 @@ void main() {
 
   group('Extensions', () {
     test('WidgetStatesController.withLifecycle', () {
-      final resource = WidgetStatesController().withLifecycle(
+      WidgetStatesController().withLifecycle(
         myRaiiManager,
         debugLabel: 'WidgetStatesController',
       );
@@ -35,7 +35,7 @@ void main() {
     });
 
     test('SearchController.withLifecycle', () {
-      final resource = SearchController().withLifecycle(
+      SearchController().withLifecycle(
         myRaiiManager,
         debugLabel: 'SearchController',
       );
@@ -53,7 +53,7 @@ void main() {
     });
 
     test('TabController.withLifecycle', () {
-      final resource = _MockTabController().withLifecycle(
+      _MockTabController().withLifecycle(
         myRaiiManager,
         debugLabel: 'TabController',
       );
@@ -71,7 +71,7 @@ void main() {
     });
 
     test('RestorableTimeOfDay.withLifecycle', () {
-      final resource = RestorableTimeOfDay(TimeOfDay.now()).withLifecycle(
+      RestorableTimeOfDay(TimeOfDay.now()).withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableTimeOfDay',
       );

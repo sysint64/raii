@@ -14,7 +14,7 @@ void main() {
 
   group('Extensions', () {
     test('CupertinoTabController.withLifecycle', () {
-      final resource = CupertinoTabController().withLifecycle(
+      CupertinoTabController().withLifecycle(
         myRaiiManager,
         debugLabel: 'CupertinoTabController',
       );
@@ -32,7 +32,7 @@ void main() {
     });
 
     test('RestorableCupertinoTabController.withLifecycle', () {
-      final resource = RestorableCupertinoTabController().withLifecycle(
+      RestorableCupertinoTabController().withLifecycle(
         myRaiiManager,
         debugLabel: 'RestorableCupertinoTabController',
       );

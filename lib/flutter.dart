@@ -63,6 +63,12 @@ import 'package:flutter/services.dart';
 import 'package:raii/raii.dart';
 import 'package:raii/src/debug.dart';
 
+/// Extension of [RaiiLifecycleAware] that provides access to build context.
+abstract class RaiiLifecycleAwareWithContext implements RaiiLifecycleAware {
+  /// Flutter build context.
+  BuildContext get context;
+}
+
 /// A mixin that implements [RaiiLifecycleAware] for [StatefulWidget] states.
 ///
 /// This mixin provides lifecycle management capabilities to widget states, automatically
@@ -84,7 +90,6 @@ import 'package:raii/src/debug.dart';
 /// }
 ///
 /// // Incorrect order - will cause incorrect resources disposal:
-/// class MyWidgetState extends State<MyWidget>
 ///     with RaiiStateMixin, TickerProviderStateMixin {
 ///   // ...
 /// }
@@ -115,7 +120,7 @@ import 'package:raii/src/debug.dart';
 /// }
 /// ```
 mixin RaiiStateMixin<T extends StatefulWidget> on State<T>
-    implements RaiiLifecycleAware {
+    implements RaiiLifecycleAwareWithContext {
   final _registeredLifecycles = <RaiiLifecycle>[];
   final _initedLifecycles = <RaiiLifecycle>[];
 
