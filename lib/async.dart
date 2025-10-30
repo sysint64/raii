@@ -186,13 +186,13 @@ class RaiiTimer with RaiiLifecycleMixin {
 
   @override
   void disposeLifecycle() {
+    super.disposeLifecycle();
+
     if (debugLabel != null) {
       raiiTrace('[RAII] Dispose lifecycle: $debugLabel');
     }
     _timer.cancel();
     _lifecycleAware.unregisterLifecycle(this);
-
-    super.disposeLifecycle();
   }
 }
 
