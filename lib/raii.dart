@@ -84,13 +84,18 @@ abstract class RaiiLifecycleAware implements RaiiLifecycle {
   /// The registered object will be initialized if this container is already initialized,
   /// and will be disposed when this container is disposed.
   void registerLifecycle(RaiiLifecycle lifecycle);
+
+  /// Un-registers a [RaiiLifecycle] object from this container.
+  ///
+  /// The registered object will be disposed if this [lifecycle] is still mounted.
+  void unregisterLifecycle(RaiiLifecycle lifecycle);
 }
 
 /// A globally accessible [RaiiManager] that never gets disposed.
 ///
 /// Useful for managing resources that need to exist
 /// for the entire application lifetime.
-final alwaysAliveRaiiManager = _AlwaysAliveRaiiManager();
+final alwaysAliveRaiiManager = _AlwaysAliveRaiiManager()..initLifecycle();
 
 class _AlwaysAliveRaiiManager with RaiiManagerMixin {
   @override
@@ -167,6 +172,15 @@ mixin RaiiManagerMixin implements RaiiLifecycleAware {
   }
 
   @override
+  void unregisterLifecycle(RaiiLifecycle lifecycle) {
+    _registeredLifecycles.remove(lifecycle);
+
+    if (lifecycle.isLifecycleMounted()) {
+      lifecycle.disposeLifecycle();
+    }
+  }
+
+  @override
   @mustCallSuper
   void initLifecycle() {
     if (_isLifecycleMounted) {
@@ -214,10 +228,10 @@ class RaiiBox<T> with RaiiLifecycleMixin {
   }
 
   /// Function called to initialize the wrapped instance.
-  final void Function(T instance)? init;
+  final void Function(T instance, RaiiLifecycle lifecycle)? init;
 
   /// Function called to dispose of the wrapped instance.
-  final void Function(T instance)? dispose;
+  final void Function(T instance, RaiiLifecycle lifecycle)? dispose;
 
   /// Optional label for debugging purposes.
   ///
@@ -234,7 +248,7 @@ class RaiiBox<T> with RaiiLifecycleMixin {
     if (debugLabel != null) {
       raiiTrace('[RAII] Init lifecycle: $debugLabel');
     }
-    init?.call(instance);
+    init?.call(instance, this);
   }
 
   @override
@@ -242,7 +256,7 @@ class RaiiBox<T> with RaiiLifecycleMixin {
     if (debugLabel != null) {
       raiiTrace('[RAII] Dispose lifecycle: $debugLabel');
     }
-    dispose?.call(instance);
+    dispose?.call(instance, this);
     super.disposeLifecycle();
   }
 }

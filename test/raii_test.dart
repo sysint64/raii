@@ -281,8 +281,8 @@ void main() {
           myRaiiManager,
           instance: 'Resource',
           debugLabel: 'Resource',
-          init: (instance) => data = '$instance: init',
-          dispose: (instance) => data = '$instance: dispose',
+          init: (instance, _) => data = '$instance: init',
+          dispose: (instance, _) => data = '$instance: dispose',
         );
 
         myRaiiManager.initLifecycle();
@@ -300,8 +300,8 @@ void main() {
           myRaiiManager,
           instance: 'Resource',
           debugLabel: 'Resource',
-          init: (instance) => data = '$instance: init',
-          dispose: (instance) => data = '$instance: dispose',
+          init: (instance, _) => data = '$instance: init',
+          dispose: (instance, _) => data = '$instance: dispose',
         );
 
         myRaiiManager.initLifecycle();

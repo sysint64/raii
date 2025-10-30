@@ -62,7 +62,7 @@ class _RaiiHomePageState extends State<RaiiHomePage>
     super.initLifecycle();
 
     // Register app lifecycle observer
-    WidgetsBinding.instance.addObserverWithLifeycle(
+    WidgetsBinding.instance.addObserverWithLifecycle(
       this,
       AppLifecycleObserver(onResume: _handleAppResume),
       debugLabel: 'AppLifecycle',

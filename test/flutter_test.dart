@@ -327,7 +327,7 @@ void main() {
         await tester.pump();
 
         // Add observer
-        mockBinding.addObserverWithLifeycle(
+        mockBinding.addObserverWithLifecycle(
           state,
           observer1,
           debugLabel: 'TestObserver',
@@ -353,7 +353,7 @@ void main() {
         await tester.pump();
 
         // Add observer
-        mockBinding.addObserverWithLifeycle(
+        mockBinding.addObserverWithLifecycle(
           state,
           observer1,
           debugLabel: 'TestObserver',
@@ -382,7 +382,7 @@ void main() {
         await tester.pump();
 
         // Add observer
-        mockBinding.addObserverWithLifeycle(
+        mockBinding.addObserverWithLifecycle(
           state,
           observer1,
           debugLabel: 'TestObserver',
@@ -399,6 +399,165 @@ void main() {
         expect(observer1.lastLifecycleState, AppLifecycleState.paused);
       },
     );
+  });
+
+  group('AnimationRaiiExt', () {
+    test('addStatusListenerWithLifecycle adds and removes listener', () {
+      final controller = AnimationController(
+        vsync: _MockTickerProvider(),
+        duration: const Duration(milliseconds: 100),
+      );
+
+      AnimationStatus? capturedStatus;
+      int listenerCallCount = 0;
+
+      controller.addStatusListenerWithLifecycle(
+        myRaiiManager,
+        (status) {
+          capturedStatus = status;
+          listenerCallCount++;
+        },
+        debugLabel: 'TestAnimationStatusListener',
+      );
+
+      // Initialize lifecycle
+      myRaiiManager.initLifecycle();
+      expect(
+        debugTraceEvents?.last,
+        '[RAII] Init lifecycle: TestAnimationStatusListener',
+      );
+
+      // Set controller to middle position so reverse() will work
+      controller.value = 0.5;
+
+      // Trigger status changes
+      controller.forward();
+      expect(capturedStatus, AnimationStatus.forward);
+      expect(listenerCallCount, 1);
+
+      controller.reverse();
+      expect(capturedStatus, AnimationStatus.reverse);
+      expect(listenerCallCount, 2);
+
+      // Dispose lifecycle
+      myRaiiManager.disposeLifecycle();
+      expect(
+        debugTraceEvents?.last,
+        '[RAII] Dispose lifecycle: TestAnimationStatusListener',
+      );
+
+      // Verify listener is removed after disposal
+      final previousCallCount = listenerCallCount;
+      controller.forward();
+      expect(listenerCallCount, previousCallCount); // Should not increment
+
+      controller.dispose();
+    });
+
+    test('addStatusListenerWithLifecycle works with multiple listeners', () {
+      final controller = AnimationController(
+        vsync: _MockTickerProvider(),
+        duration: const Duration(milliseconds: 100),
+      );
+
+      int listener1Count = 0;
+      int listener2Count = 0;
+
+      controller.addStatusListenerWithLifecycle(
+        myRaiiManager,
+        (status) => listener1Count++,
+        debugLabel: 'Listener1',
+      );
+
+      controller.addStatusListenerWithLifecycle(
+        myRaiiManager,
+        (status) => listener2Count++,
+        debugLabel: 'Listener2',
+      );
+
+      myRaiiManager.initLifecycle();
+
+      // Trigger status change
+      controller.forward();
+      expect(listener1Count, 1);
+      expect(listener2Count, 1);
+
+      // Dispose and verify both listeners are removed
+      myRaiiManager.disposeLifecycle();
+
+      controller.reverse();
+      expect(listener1Count, 1); // Should not increment
+      expect(listener2Count, 1); // Should not increment
+
+      controller.dispose();
+    });
+
+    test('addStatusListenerWithLifecycle tracks animation status changes', () {
+      final controller = AnimationController(
+        vsync: _MockTickerProvider(),
+        duration: const Duration(milliseconds: 100),
+      );
+
+      final capturedStatuses = <AnimationStatus>[];
+
+      controller.addStatusListenerWithLifecycle(
+        myRaiiManager,
+        (status) => capturedStatuses.add(status),
+        debugLabel: 'StatusTracker',
+      );
+
+      myRaiiManager.initLifecycle();
+
+      // Test forward status
+      controller.value = 0.5;
+      controller.forward();
+      expect(capturedStatuses, contains(AnimationStatus.forward));
+
+      // Test reverse status
+      controller.reverse();
+      expect(capturedStatuses, contains(AnimationStatus.reverse));
+
+      // Test dismissed status
+      controller.value = 0.0;
+      expect(capturedStatuses, contains(AnimationStatus.dismissed));
+
+      // Test completed status
+      controller.value = 1.0;
+      expect(capturedStatuses, contains(AnimationStatus.completed));
+
+      myRaiiManager.disposeLifecycle();
+      controller.dispose();
+    });
+
+    test('addStatusListenerWithLifecycle with Tween animation', () {
+      final controller = AnimationController(
+        vsync: _MockTickerProvider(),
+        duration: const Duration(milliseconds: 100),
+      );
+
+      final animation = Tween<double>(begin: 0.0, end: 1.0).animate(controller);
+      final statuses = <AnimationStatus>[];
+
+      animation.addStatusListenerWithLifecycle(
+        myRaiiManager,
+        (status) => statuses.add(status),
+        debugLabel: 'TweenAnimation',
+      );
+
+      myRaiiManager.initLifecycle();
+
+      controller.forward();
+      expect(statuses, contains(AnimationStatus.forward));
+
+      myRaiiManager.disposeLifecycle();
+
+      // Verify listener removed from tween animation
+      final countBefore = statuses.length;
+      controller.reverse();
+      expect(statuses.length, countBefore);
+
+      controller.dispose();
+    });
   });
 
   group('Extensions', () {

@@ -181,6 +181,15 @@ mixin RaiiStateMixin<T extends StatefulWidget> on State<T>
       }
     }
   }
+
+  @override
+  void unregisterLifecycle(RaiiLifecycle lifecycle) {
+    _initedLifecycles.remove(lifecycle);
+
+    if (lifecycle.isLifecycleMounted()) {
+      lifecycle.disposeLifecycle();
+    }
+  }
 }
 
 /// A lifecycle implementation that wraps a dispose callback and manages its lifecycle.
@@ -1602,6 +1611,60 @@ extension ListenableRaiiExt on Listenable {
 }
 
 /// Extension that provides a more direct way to add lifecycle-managed
+/// status listeners to Animation object.
+extension AnimationRaiiExt<T> on Animation<T> {
+  /// Adds a status listener that will be automatically removed
+  /// when the [lifecycleAware] is disposed.
+  void addStatusListenerWithLifecycle(
+    RaiiLifecycleAware lifecycleAware,
+    AnimationStatusListener onListen, {
+    String? debugLabel,
+  }) {
+    _AnimationStatusListener.withLifecycle(
+      lifecycleAware,
+      listenable: this,
+      onListen: onListen,
+      debugLabel: debugLabel,
+    );
+  }
+}
+
+class _AnimationStatusListener<T> with RaiiLifecycleMixin {
+  _AnimationStatusListener.withLifecycle(
+    RaiiLifecycleAware lifecycleAware, {
+    required this.listenable,
+    required this.onListen,
+    this.debugLabel,
+  }) {
+    lifecycleAware.registerLifecycle(this);
+  }
+
+  final Animation<T> listenable;
+
+  final String? debugLabel;
+
+  final AnimationStatusListener onListen;
+
+  @override
+  void initLifecycle() {
+    super.initLifecycle();
+    if (debugLabel != null) {
+      raiiTrace('[RAII] Init lifecycle: $debugLabel');
+    }
+    listenable.addStatusListener(onListen);
+  }
+
+  @override
+  void disposeLifecycle() {
+    if (debugLabel != null) {
+      raiiTrace('[RAII] Dispose lifecycle: $debugLabel');
+    }
+    listenable.removeStatusListener(onListen);
+    super.disposeLifecycle();
+  }
+}
+
+/// Extension that provides a more direct way to add lifecycle-managed
 /// observers to the [WidgetsBinding] instance.
 ///
 /// **Example:**
@@ -1630,7 +1693,7 @@ extension ListenableRaiiExt on Listenable {
 ///
 /// // Attach the observer
 /// final lifecycleObserver = AppLifecycleObserver();
-/// WidgetsBinding.instance.addObserverWithLifeycle(
+/// WidgetsBinding.instance.addObserverWithLifecycle(
 ///   lifecycleAware,
 ///   lifecycleObserver,
 ///   debugLabel: 'AppLifecycle',
@@ -1651,7 +1714,7 @@ extension ListenableRaiiExt on Listenable {
 ///
 /// // Attach the system observer
 /// final settingsObserver = SystemSettingsObserver();
-/// WidgetsBinding.instance.addObserverWithLifeycle(
+/// WidgetsBinding.instance.addObserverWithLifecycle(
 ///   lifecycleAware,
 ///   settingsObserver,
 /// );
@@ -1659,7 +1722,7 @@ extension ListenableRaiiExt on Listenable {
 extension WidgetsBindingRaiiExt on WidgetsBinding {
   /// Adds a listener that will be automatically removed
   /// when the [lifecycleAware] is disposed.
-  void addObserverWithLifeycle(
+  void addObserverWithLifecycle(
     RaiiLifecycleAware lifecycleAware,
     WidgetsBindingObserver observer, {
     String? debugLabel,
