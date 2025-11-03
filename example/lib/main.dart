@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:raii/flutter.dart';
 
@@ -103,6 +105,23 @@ class _RaiiHomePageState extends State<RaiiHomePage>
       this,
       _handleAnimationUpdate,
       debugLabel: 'AnimationListener',
+    );
+
+    // Timer
+    Timer(
+      const Duration(seconds: 5),
+      () => print('Ont-shot: 5 seconds pass'),
+    ).withLifecycle(
+      this,
+      debugLabel: 'One-shot Timer',
+    );
+
+    Timer.periodic(
+      const Duration(seconds: 1),
+      (t) => print('Periodic: ${t.tick} seconds pass'),
+    ).withLifecycle(
+      this,
+      debugLabel: 'Periodic Timer',
     );
   }
 

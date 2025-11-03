@@ -1,3 +1,6 @@
+## 0.3.1
+* Update README.md.
+
 ## 0.3.0
 
 * Add `addStatusListenerWithLifecycle` to `Animation<T>`;

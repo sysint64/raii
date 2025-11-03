@@ -22,7 +22,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  raii: ^0.1.0
+  raii: ^0.3.1
 ```
 
 ## Usage
@@ -290,15 +290,26 @@ class AppStateObserver with WidgetsBindingObserver {
 
 ```dart
 class TimerWidgetState extends State<TimerWidget> with RaiiStateMixin {
-  late final periodicTimer = RaiiBox.withLifecycle(
-    this,
-    instance: Timer.periodic(
-      Duration(seconds: 1),
-      (_) => debugPrint('Timer tick'),
-    ),
-    dispose: (timer) => timer.cancel(),
-    debugLabel: 'PeriodicTimer',
-  );
+  @override
+  void initLifecycle() {
+    super.initLifecycle();
+
+    Timer(
+      const Duration(seconds: 5),
+      () => print('Ont-shot: 5 seconds pass'),
+    ).withLifecycle(
+      this,
+      debugLabel: 'One-shot Timer',
+    );
+
+    Timer.periodic(
+      const Duration(seconds: 1),
+      (t) => print('Periodic: ${t.tick} seconds pass'),
+    ).withLifecycle(
+      this,
+      debugLabel: 'Periodic Timer',
+    );
+  }
 }
 ```
 
