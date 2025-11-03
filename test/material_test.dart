@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:raii/material.dart';
+import 'package:raii/flutter.dart';
 import 'package:raii/raii.dart';
 import 'package:raii/src/debug.dart';
 

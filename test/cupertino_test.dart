@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:raii/cupertino.dart';
+import 'package:raii/flutter.dart';
 import 'package:raii/raii.dart';
 import 'package:raii/src/debug.dart';
 

@@ -5,7 +5,12 @@
 * Add `unregisterLifecycle` method to the `RaiiLifecycleAware`;
 * Add `withLifecycle` extension to the `Timer` which return `RaiiTimer`;
 * Init `alwaysAliveRaiiManager` when created;
-* Typo `addObserverWithLifeycle` -> `addObserverWithLifecycle`.
+* Typo `addObserverWithLifeycle` -> `addObserverWithLifecycle`;
+* Remove `material` and `cupertino` packages, now everything in the `flutter`;
+* Automatic unregister lifecycles when disposed;
+* Support all types that extends `ChangeNotifier`;
+* Add `RaiiLifecycleHolderTracker` and `RaiiLifecycleHolderTrackerMixin` for lifecycle objects that track their parent holder;
+* `RaiiLifecycleMixin` and `RaiiManagerMixin` now implements `RaiiLifecycleHolderTracker`.
 
 ## 0.2.0
 

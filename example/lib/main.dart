@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:raii/flutter.dart';
-import 'package:raii/material.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +16,10 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const RaiiHomePage(),
+      home: RaiiHomePage(
+        // Try to hot reload to see that all resources got disposed.
+        key: UniqueKey(),
+      ),
     );
   }
 }

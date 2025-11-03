@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:raii/raii.dart';
@@ -76,14 +78,14 @@ void main() {
     );
 
     test(
-      'throw state error exception '
+      'throw AlreadyDisposedException '
       'when try to dispose twice',
       () {
         resource.initLifecycle();
         resource.disposeLifecycle();
         expect(
           () => resource.disposeLifecycle(),
-          throwsA(isA<StateError>()),
+          throwsA(isA<AlreadyDisposedException>()),
         );
       },
     );
@@ -95,7 +97,7 @@ void main() {
         resource.initLifecycle();
         expect(
           () => resource.initLifecycle(),
-          throwsA(isA<StateError>()),
+          throwsA(isA<AlreadyInitializedException>()),
         );
       },
     );
@@ -106,7 +108,7 @@ void main() {
       () {
         expect(
           () => resource.disposeLifecycle(),
-          throwsA(isA<StateError>()),
+          throwsA(isA<NotInitializedException>()),
         );
       },
     );
@@ -129,6 +131,13 @@ void main() {
       'manager\'s lifecycle is mounted '
       'when initLifecycle',
       () {
+        final controller = StreamController<int>();
+        controller.add(1);
+        // ignore: avoid_print
+        final subscription = controller.stream.listen((it) => print(it));
+        controller.close();
+        subscription.cancel();
+
         myRaiiManager.initLifecycle();
 
         expect(myRaiiManager.isLifecycleMounted(), true);
@@ -193,7 +202,7 @@ void main() {
     );
 
     test(
-      'dispoase all resources '
+      'dispose all resources '
       'when disposeLifecycle',
       () {
         myRaiiManager.initLifecycle();
@@ -211,7 +220,7 @@ void main() {
     );
 
     test(
-      'throw a state error '
+      'throw ManagerDisposedException '
       'when try register resource on disposed manager',
       () {
         myRaiiManager.initLifecycle();
@@ -222,43 +231,43 @@ void main() {
 
         expect(
           () => myRaiiManager.registerLifecycle(resourceC),
-          throwsA(isA<StateError>()),
+          throwsA(isA<ManagerDisposedException>()),
         );
       },
     );
 
     test(
-      'throw state error exception '
+      'throw AlreadyDisposedException '
       'when try to dispose twice',
       () {
         myRaiiManager.initLifecycle();
         myRaiiManager.disposeLifecycle();
         expect(
           () => myRaiiManager.disposeLifecycle(),
-          throwsA(isA<StateError>()),
+          throwsA(isA<AlreadyDisposedException>()),
         );
       },
     );
 
     test(
-      'throw state error exception '
+      'throw AlreadyInitializedException '
       'when try to init twice',
       () {
         myRaiiManager.initLifecycle();
         expect(
           () => myRaiiManager.initLifecycle(),
-          throwsA(isA<StateError>()),
+          throwsA(isA<AlreadyInitializedException>()),
         );
       },
     );
 
     test(
-      'throw state error exception '
+      'throw NotInitializedException '
       'when try to dispose non initialized',
       () {
         expect(
           () => myRaiiManager.disposeLifecycle(),
-          throwsA(isA<StateError>()),
+          throwsA(isA<NotInitializedException>()),
         );
       },
     );

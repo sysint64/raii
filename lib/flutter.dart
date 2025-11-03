@@ -56,10 +56,8 @@ library;
 
 import 'dart:async';
 
-import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:raii/raii.dart';
 import 'package:raii/src/debug.dart';
 
@@ -120,42 +118,53 @@ abstract class RaiiLifecycleAwareWithContext implements RaiiLifecycleAware {
 /// }
 /// ```
 mixin RaiiStateMixin<T extends StatefulWidget> on State<T>
-    implements RaiiLifecycleAwareWithContext {
-  final _registeredLifecycles = <RaiiLifecycle>[];
-  final _initedLifecycles = <RaiiLifecycle>[];
+    implements RaiiLifecycleAwareWithContext, RaiiLifecycleHolderTracker {
+  final _pendingLifecycles = <RaiiLifecycle>{};
 
   bool _attached = false;
-  bool _isLifecycleMounted = false;
+  late final _raiiManager = RaiiManager();
 
   @override
-  bool isLifecycleMounted() => _isLifecycleMounted;
+  RaiiLifecycleAware? get raiiHolder => _raiiManager.raiiHolder;
+
+  @override
+  void setRaiiHolder(RaiiLifecycleAware holder) {
+    _raiiManager.setRaiiHolder(holder);
+  }
+
+  @override
+  void clearRaiiHolder() {
+    _raiiManager.clearRaiiHolder();
+  }
+
+  @override
+  bool isLifecycleMounted() => _raiiManager.isLifecycleMounted();
 
   @override
   @mustCallSuper
   void initLifecycle() {
-    _isLifecycleMounted = true;
+    _raiiManager.initLifecycle();
   }
 
   @override
   @mustCallSuper
   void disposeLifecycle() {
-    _isLifecycleMounted = false;
+    _raiiManager.disposeLifecycle();
   }
 
   @override
   void didChangeDependencies() {
-    // Initialize any pending lifecycle objects
-    for (final lifecycle in _registeredLifecycles) {
-      if (!_initedLifecycles.contains(lifecycle)) {
-        lifecycle.initLifecycle();
-        _initedLifecycles.add(lifecycle);
-      }
-    }
-
     // Perform one-time lifecycle attachment
     if (!_attached) {
-      _attached = true;
       initLifecycle();
+
+      // Initialize any pending lifecycle objects
+      for (final lifecycle in _pendingLifecycles) {
+        _raiiManager.registerLifecycle(lifecycle);
+      }
+
+      _pendingLifecycles.clear();
+      _attached = true;
     }
 
     super.didChangeDependencies();
@@ -163,99 +172,42 @@ mixin RaiiStateMixin<T extends StatefulWidget> on State<T>
 
   @override
   void dispose() {
-    for (final lifecycle in _registeredLifecycles) {
-      lifecycle.disposeLifecycle();
-    }
     disposeLifecycle();
+
+    // Warn about pending lifecycles that were never initialized
+    if (_pendingLifecycles.isNotEmpty) {
+      raiiTrace(
+        '[RAII] ${_pendingLifecycles.length} pending lifecycles never attached',
+      );
+      _pendingLifecycles.clear();
+    }
+
     super.dispose();
   }
 
   @override
+  @mustCallSuper
   void registerLifecycle(RaiiLifecycle lifecycle) {
-    if (!_initedLifecycles.contains(lifecycle)) {
-      _registeredLifecycles.add(lifecycle);
+    if (_raiiManager.isDisposed) {
+      throw const ManagerDisposedException();
+    }
 
-      if (mounted) {
-        lifecycle.initLifecycle();
-        _initedLifecycles.add(lifecycle);
-      }
+    if (_attached) {
+      _raiiManager.registerLifecycle(lifecycle);
+    } else {
+      _pendingLifecycles.add(lifecycle);
     }
   }
 
   @override
-  void unregisterLifecycle(RaiiLifecycle lifecycle) {
-    _initedLifecycles.remove(lifecycle);
-
-    if (lifecycle.isLifecycleMounted()) {
-      lifecycle.disposeLifecycle();
+  @mustCallSuper
+  bool unregisterLifecycle(RaiiLifecycle lifecycle) {
+    // Check pending first
+    if (_pendingLifecycles.remove(lifecycle)) {
+      return true;
     }
-  }
-}
 
-/// A lifecycle implementation that wraps a dispose callback and manages its lifecycle.
-///
-/// This class is the core implementation behind the RAII pattern used by various Flutter
-/// extensions. It provides a way to attach any disposable resource to a [RaiiLifecycleAware]
-/// object, ensuring proper cleanup when the lifecycle ends.
-///
-/// **Example:**
-///
-/// ```dart
-/// // Direct usage (though extensions are preferred)
-/// final controller = TextEditingController();
-/// RaiiDisposeable.withLifecycle(
-///   lifecycleAware,
-///   dispose: controller.dispose,
-///   debugLabel: 'TextController',
-/// );
-///
-/// // More complex disposal logic
-/// RaiiDisposeable.withLifecycle(
-///   lifecycleAware,
-///   dispose: () {
-///     controller.removeListener(onChanged);
-///     controller.dispose();
-///   },
-///   debugLabel: 'TextControllerWithListener',
-/// );
-/// ```
-class RaiiDisposeable with RaiiLifecycleMixin {
-  /// Creates a [RaiiDisposeable] and attaches it to the provided [lifecycleAware].
-  ///
-  /// The [dispose] callback will be called during [disposeLifecycle], ensuring
-  /// that the resource is properly cleaned up when the lifecycle ends.
-  RaiiDisposeable.withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    required this.dispose,
-    this.debugLabel,
-  }) {
-    lifecycleAware.registerLifecycle(this);
-  }
-
-  /// The callback to execute when disposing of the resource.
-  final VoidCallback dispose;
-
-  /// Optional label for debugging purposes.
-  ///
-  /// When provided, lifecycle events will be logged to the console with this label.
-  final String? debugLabel;
-
-  @override
-  void initLifecycle() {
-    super.initLifecycle();
-
-    if (debugLabel != null) {
-      raiiTrace('[RAII] Init lifecycle: $debugLabel');
-    }
-  }
-
-  @override
-  void disposeLifecycle() {
-    if (debugLabel != null) {
-      raiiTrace('[RAII] Dispose lifecycle: $debugLabel');
-    }
-    dispose();
-    super.disposeLifecycle();
+    return _raiiManager.unregisterLifecycle(lifecycle);
   }
 }
 
@@ -526,30 +478,36 @@ class _StreamSubscriptionRaiiLifecycle<T> with RaiiLifecycleMixin {
   }
 }
 
-/// Extension for managing [ScrollController] lifecycle.
+/// Extension for managing types that extends [ChangeNotifier] lifecycle.
 ///
 /// **Example:**
 ///
 /// ```dart
-/// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
-///   late final scrollController = ScrollController()
-///     .withLifecycle(this, debugLabel: 'MyScrollController');
+/// class MyWidgetState extends State<MyWidget>
+///     with TickerProviderStateMixin, RaiiStateMixin {
+///   late final tabController = TabController(length: 3, vsync: this)
+///       .withLifecycle(this, debugLabel: 'Tabs');
+///
+///   late final scrollController =
+///       ScrollController().withLifecycle(this, debugLabel: 'Scroll');
+///
+///   late final textController =
+///       TextEditingController().withLifecycle(this, debugLabel: 'TextInput');
+///
+///   late final focusNode =
+///       FocusNode().withLifecycle(this, debugLabel: 'FocusNode');
 /// }
 /// ```
-extension ScrollControllerRaiiExt on ScrollController {
-  /// Attaches this controller to a [RaiiLifecycleAware] object for automatic disposal.
+extension ChangeNotifierExt<T extends ChangeNotifier> on T {
+  /// Attaches this change notifier to a [RaiiLifecycleAware] object for automatic disposal.
   ///
-  /// The controller will be disposed when the lifecycle is disposed.
-  ScrollController withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
+  /// The change notifier will be disposed when the lifecycle is disposed.
+  T withLifecycle(RaiiLifecycleAware lifecycleAware, {String? debugLabel}) {
     RaiiDisposeable.withLifecycle(
       lifecycleAware,
-      dispose: () => dispose(),
+      dispose: dispose,
       debugLabel: debugLabel,
     );
-
     return this;
   }
 }
@@ -613,979 +571,6 @@ extension TickerRaiiExt on Ticker {
       debugLabel: debugLabel,
     );
 
-    return this;
-  }
-}
-
-/// Extension for managing [ValueNotifier] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
-///   late final counterNotifier = ValueNotifier<int>(0)
-///     .withLifecycle(this, debugLabel: 'MyValueNotifier');
-/// }
-/// ```
-extension ValueNotifierRaiiExt<T> on ValueNotifier<T> {
-  /// Attaches this notifier to a [RaiiLifecycleAware] object for automatic disposal.
-  ///
-  /// The notifier will be disposed when the lifecycle is disposed.
-  ValueNotifier<T> withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-
-    return this;
-  }
-}
-
-/// Extension for managing [MouseTracker] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final mouseTracker = MouseTracker(...)
-///   .withLifecycle(this, debugLabel: 'MouseTracker');
-/// ```
-extension MouseTrackerRaiiExt on MouseTracker {
-  /// Attaches this mouse tracker to a [RaiiLifecycleAware] object for automatic disposal.
-  MouseTracker withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-
-    return this;
-  }
-}
-
-/// Extension for managing [ViewportOffset] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final viewportOffset = ViewportOffset.fixed(0)
-///   .withLifecycle(this, debugLabel: 'ViewportOffset');
-/// ```
-extension ViewportOffsetRaiiExt on ViewportOffset {
-  /// Attaches this viewport offset to a [RaiiLifecycleAware] object for automatic disposal.
-  ViewportOffset withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-
-    return this;
-  }
-}
-
-/// Extension for managing [SemanticsOwner] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final semanticsOwner = SemanticsOwner(...)
-///   .withLifecycle(this, debugLabel: 'SemanticsOwner');
-/// ```
-extension SemanticsOwnerRaiiExt on SemanticsOwner {
-  /// Attaches this semantics owner to a [RaiiLifecycleAware] object for automatic disposal.
-  SemanticsOwner withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-
-    return this;
-  }
-}
-
-/// Extension for managing [RestorationManager] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final restorationManager = RestorationManager()
-///   .withLifecycle(this, debugLabel: 'RestorationManager');
-/// ```
-extension RestorationManagerRaiiExt on RestorationManager {
-  /// Attaches this restoration manager to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorationManager withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [KeepAliveHandle] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final keepAliveHandle = KeepAliveHandle()
-///   .withLifecycle(this, debugLabel: 'KeepAliveHandle');
-/// ```
-extension KeepAliveHandleRaiiExt on KeepAliveHandle {
-  /// Attaches this keep alive handle to a [RaiiLifecycleAware] object for automatic disposal.
-  KeepAliveHandle withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [DraggableScrollableController] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final draggableController = DraggableScrollableController()
-///   .withLifecycle(this, debugLabel: 'DraggableController');
-/// ```
-extension DraggableScrollableControllerRaiiExt
-    on DraggableScrollableController {
-  /// Attaches this controller to a [RaiiLifecycleAware] object for automatic disposal.
-  DraggableScrollableController withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [TextEditingController] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final textController = TextEditingController()
-///   .withLifecycle(this, debugLabel: 'TextController');
-/// ```
-extension TextEditingControllerRaiiExt on TextEditingController {
-  /// Attaches this controller to a [RaiiLifecycleAware] object for automatic disposal.
-  TextEditingController withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [FocusNode] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
-///   late final focusNode = FocusNode()
-///     .withLifecycle(this, debugLabel: 'FocusNode');
-/// }
-/// ```
-extension FocusNodeRaiiExt on FocusNode {
-  /// Attaches this focus node to a [RaiiLifecycleAware] object for automatic disposal.
-  FocusNode withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [FocusScopeNode] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
-///   final focusScope = FocusScopeNode()
-///     .withLifecycle(this, debugLabel: 'FocusScope');
-/// }
-/// ```
-extension FocusScopeNodeRaiiExt on FocusScopeNode {
-  /// Attaches this focus scope node to a [RaiiLifecycleAware] object for automatic disposal.
-  FocusScopeNode withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [FocusManager] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final focusManager = FocusManager()
-///   .withLifecycle(this, debugLabel: 'FocusManager');
-/// ```
-extension FocusManagerRaiiExt on FocusManager {
-  /// Attaches this focus manager to a [RaiiLifecycleAware] object for automatic disposal.
-  FocusManager withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [TransformationController] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
-///   late final transformationController = TransformationController()
-///     .withLifecycle(this, debugLabel: 'TransformationController');
-/// }
-/// ```
-extension TransformationControllerRaiiExt on TransformationController {
-  /// Attaches this controller to a [RaiiLifecycleAware] object for automatic disposal.
-  TransformationController withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [FixedExtentScrollController] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
-///   late final scrollController = FixedExtentScrollController()
-///     .withLifecycle(this, debugLabel: 'FixedExtentController');
-/// }
-/// ```
-extension FixedExtentScrollControllerRaiiExt on FixedExtentScrollController {
-  /// Attaches this controller to a [RaiiLifecycleAware] object for automatic disposal.
-  FixedExtentScrollController withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [RestorableRouteFuture] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final routeFuture = RestorableRouteFuture<String>(
-///   onPresent: (navigator, arguments) => navigator.pushNamed('/route'),
-/// ).withLifecycle(this, debugLabel: 'RouteFuture');
-/// ```
-extension RestorableRouteFutureRaiiExt<T> on RestorableRouteFuture<T> {
-  /// Attaches this restorable route future to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorableRouteFuture<T> withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [SliverOverlapAbsorberHandle] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final absorberHandle = SliverOverlapAbsorberHandle()
-///   .withLifecycle(this, debugLabel: 'AbsorberHandle');
-/// ```
-extension SliverOverlapAbsorberHandleRaiiExt on SliverOverlapAbsorberHandle {
-  /// Attaches this sliver overlap absorber handle to a [RaiiLifecycleAware] object for automatic disposal.
-  SliverOverlapAbsorberHandle withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [PageController] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// class MyWidgetState extends State<MyWidget> with RaiiStateMixin {
-///   late final pageController = PageController(initialPage: 0)
-///     .withLifecycle(this, debugLabel: 'PageController');
-/// }
-/// ```
-extension PageControllerRaiiExt on PageController {
-  /// Attaches this page controller to a [RaiiLifecycleAware] object for automatic disposal.
-  PageController withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [RestorableNum] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final number = RestorableNum(0.0)
-///   .withLifecycle(this, debugLabel: 'RestorableNum');
-/// ```
-extension RestorableNumRaiiExt<T extends num> on RestorableNum<T> {
-  /// Attaches this restorable number to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorableNum<T> withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [RestorableDouble] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final price = RestorableDouble(0.0)
-///   .withLifecycle(this, debugLabel: 'Price');
-/// ```
-extension RestorableDoubleRaiiExt on RestorableDouble {
-  /// Attaches this restorable double to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorableDouble withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [RestorableInt] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final counter = RestorableInt(0)
-///   .withLifecycle(this, debugLabel: 'Counter');
-/// ```
-extension RestorableIntRaiiExt on RestorableInt {
-  /// Attaches this restorable integer to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorableInt withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [RestorableString] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final name = RestorableString('')
-///   .withLifecycle(this, debugLabel: 'Name');
-/// ```
-extension RestorableStringRaiiExt on RestorableString {
-  /// Attaches this restorable string to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorableString withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [RestorableBool] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final isEnabled = RestorableBool(false)
-///   .withLifecycle(this, debugLabel: 'IsEnabled');
-/// ```
-extension RestorableBoolRaiiExt on RestorableBool {
-  /// Attaches this restorable boolean to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorableBool withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing nullable [RestorableBoolN] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final isSelected = RestorableBoolN(null)
-///   .withLifecycle(this, debugLabel: 'IsSelected');
-/// ```
-extension RestorableBoolNRaiiExt on RestorableBoolN {
-  /// Attaches this nullable restorable boolean to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorableBoolN withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing nullable [RestorableNumN] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final quantity = RestorableNumN(null)
-///   .withLifecycle(this, debugLabel: 'Quantity');
-/// ```
-extension RestorableNumNRaiiExt<T extends num?> on RestorableNumN<T> {
-  /// Attaches this nullable restorable number to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorableNumN<T> withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing nullable [RestorableDoubleN] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final rating = RestorableDoubleN(null)
-///   .withLifecycle(this, debugLabel: 'Rating');
-/// ```
-extension RestorableDoubleNRaiiExt on RestorableDoubleN {
-  /// Attaches this nullable restorable double to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorableDoubleN withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing nullable [RestorableIntN] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final index = RestorableIntN(null)
-///   .withLifecycle(this, debugLabel: 'Index');
-/// ```
-extension RestorableIntNRaiiExt on RestorableIntN {
-  /// Attaches this nullable restorable integer to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorableIntN withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing nullable [RestorableStringN] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final description = RestorableStringN(null)
-///   .withLifecycle(this, debugLabel: 'Description');
-/// ```
-extension RestorableStringNRaiiExt on RestorableStringN {
-  /// Attaches this nullable restorable string to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorableStringN withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [RestorableDateTime] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final createdAt = RestorableDateTime(DateTime.now())
-///   .withLifecycle(this, debugLabel: 'CreatedAt');
-/// ```
-extension RestorableDateTimeRaiiExt on RestorableDateTime {
-  /// Attaches this restorable date time to a [RaiiLifecycleAware] object for automatic disposal.
-  RestorableDateTime withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing nullable [RestorableDateTimeN] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final lastModified = RestorableDateTimeN(null)
-///   .withLifecycle(this, debugLabel: 'LastModified');
-/// ```
-extension RestorableDateTimeNRaiiExt on RestorableDateTimeN {
-  /// Attaches this nullable restorable date time to a [RaiiLifecycleAware] object.
-  RestorableDateTimeN withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [RestorableTextEditingController] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final textController = RestorableTextEditingController(text: 'Initial')
-///   .withLifecycle(this, debugLabel: 'TextController');
-/// ```
-extension RestorableTextEditingControllerRaiiExt
-    on RestorableTextEditingController {
-  /// Attaches this restorable text editing controller to a [RaiiLifecycleAware] object.
-  RestorableTextEditingController withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing nullable [RestorableEnumN] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final status = RestorableEnumN<Status>(null)
-///   .withLifecycle(this, debugLabel: 'Status');
-/// ```
-extension RestorableEnumNRaiiRaiiExt<T extends Enum> on RestorableEnumN<T> {
-  /// Attaches this nullable restorable enum to a [RaiiLifecycleAware] object.
-  RestorableEnumN<T> withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [RestorableEnum] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final priority = RestorableEnum<Priority>(Priority.medium)
-///   .withLifecycle(this, debugLabel: 'Priority');
-/// ```
-extension RestorableEnumRaiiExt<T extends Enum> on RestorableEnum<T> {
-  /// Attaches this restorable enum to a [RaiiLifecycleAware] object.
-  RestorableEnum<T> withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [PlatformRouteInformationProvider] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final routeProvider = PlatformRouteInformationProvider(
-///   initialRouteInformation: RouteInformation(location: '/'),
-/// ).withLifecycle(this, debugLabel: 'RouteProvider');
-/// ```
-extension PlatformRouteInformationProviderRaiiExt
-    on PlatformRouteInformationProvider {
-  /// Attaches this route information provider to a [RaiiLifecycleAware] object.
-  PlatformRouteInformationProvider withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [TrackingScrollController] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final trackingController = TrackingScrollController()
-///   .withLifecycle(this, debugLabel: 'TrackingController');
-/// ```
-extension TrackingScrollControllerRaiiExt on TrackingScrollController {
-  /// Attaches this tracking scroll controller to a [RaiiLifecycleAware] object.
-  TrackingScrollController withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [ScrollPosition] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final scrollPosition = ScrollPosition(
-///   physics: AlwaysScrollableScrollPhysics(),
-///   context: context,
-/// ).withLifecycle(this, debugLabel: 'ScrollPosition');
-/// ```
-extension ScrollPositionRaiiExt on ScrollPosition {
-  /// Attaches this scroll position to a [RaiiLifecycleAware] object.
-  ScrollPosition withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [ScrollPositionWithSingleContext] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final scrollPosition = ScrollPositionWithSingleContext(
-///   physics: AlwaysScrollableScrollPhysics(),
-///   context: context,
-/// ).withLifecycle(this, debugLabel: 'ScrollPosition');
-/// ```
-extension ScrollPositionWithSingleContextRaiiExt
-    on ScrollPositionWithSingleContext {
-  /// Attaches this scroll position to a [RaiiLifecycleAware] object.
-  ScrollPositionWithSingleContext withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [ScrollbarPainter] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final scrollbarPainter = ScrollbarPainter(
-///   color: Colors.grey,
-///   textDirection: TextDirection.ltr,
-/// ).withLifecycle(this, debugLabel: 'ScrollbarPainter');
-/// ```
-extension ScrollbarPainterRaiiExt on ScrollbarPainter {
-  /// Attaches this scrollbar painter to a [RaiiLifecycleAware] object.
-  ScrollbarPainter withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [ShortcutManager] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final shortcuts = ShortcutManager()
-///   .withLifecycle(this, debugLabel: 'ShortcutManager');
-/// ```
-extension ShortcutManagerRaiiExt on ShortcutManager {
-  /// Attaches this shortcut manager to a [RaiiLifecycleAware] object.
-  ShortcutManager withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [ShortcutRegistry] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final registry = ShortcutRegistry()
-///   .withLifecycle(this, debugLabel: 'ShortcutRegistry');
-/// ```
-extension ShortcutRegistryRaiiExt on ShortcutRegistry {
-  /// Attaches this shortcut registry to a [RaiiLifecycleAware] object.
-  ShortcutRegistry withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [SnapshotController] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final snapshotController = SnapshotController()
-///   .withLifecycle(this, debugLabel: 'SnapshotController');
-/// ```
-extension SnapshotControllerRaiiExt on SnapshotController {
-  /// Attaches this snapshot controller to a [RaiiLifecycleAware] object.
-  SnapshotController withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [ClipboardStatusNotifier] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final clipboardStatus = ClipboardStatusNotifier()
-///   .withLifecycle(this, debugLabel: 'ClipboardStatus');
-/// ```
-extension ClipboardStatusNotifierRaiiExt on ClipboardStatusNotifier {
-  /// Attaches this clipboard status notifier to a [RaiiLifecycleAware] object.
-  ClipboardStatusNotifier withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
-    return this;
-  }
-}
-
-/// Extension for managing [UndoHistoryController] lifecycle.
-///
-/// **Example:**
-///
-/// ```dart
-/// final undoController = UndoHistoryController()
-///   .withLifecycle(this, debugLabel: 'UndoController');
-/// ```
-extension UndoHistoryControllerRaiiExt on UndoHistoryController {
-  /// Attaches this undo history controller to a [RaiiLifecycleAware] object.
-  UndoHistoryController withLifecycle(
-    RaiiLifecycleAware lifecycleAware, {
-    String? debugLabel,
-  }) {
-    RaiiDisposeable.withLifecycle(
-      lifecycleAware,
-      dispose: dispose,
-      debugLabel: debugLabel,
-    );
     return this;
   }
 }
@@ -1731,6 +716,262 @@ extension WidgetsBindingRaiiExt on WidgetsBinding {
       lifecycleAware,
       this,
       observer,
+      debugLabel: debugLabel,
+    );
+  }
+}
+
+/// A managed [Timer] that integrates with the RAII lifecycle system.
+///
+/// [RaiiTimer] wraps a standard [Timer] and provides automatic cancellation
+/// when its parent lifecycle is disposed. This prevents common issues like
+/// timers firing after their associated widget or component has been disposed.
+///
+/// The timer can be cancelled manually by calling [cancel], or it will be
+/// automatically cancelled when the parent [RaiiLifecycleAware] is disposed.
+///
+/// Example usage:
+/// ```dart
+/// class NotificationManager with RaiiLifecycleMixin {
+///   void scheduleNotification() {
+///     // Create timer using the extension method
+///     final timer = Timer(Duration(seconds: 5), () {
+///       showNotification('Your task is ready!');
+///     }).withLifecycle(this);
+///
+///     // Can manually cancel if needed
+///     if (userCancelled) {
+///       timer.cancel();
+///     }
+///
+///     // Can check timer state
+///     if (timer.isActive) {
+///       print('Timer is still running');
+///     }
+///   }
+///
+///   void schedulePeriodicTask() {
+///     final timer = Timer.periodic(Duration(seconds: 1), (t) {
+///       print('Tick: ${t.tick}');
+///     }).withLifecycle(this);
+///
+///     // Access the timer's tick count
+///     print('Current tick: ${timer.tick}');
+///   }
+/// }
+/// ```
+///
+/// The timer follows this lifecycle:
+/// 1. Created via [RaiiTimer.withLifecycle] (typically through [TimerRaiiExt.withLifecycle])
+/// 2. Registered with parent [RaiiLifecycleAware]
+/// 3. Timer runs until completion, manual cancellation, or parent disposal
+/// 4. On disposal: timer is cancelled, lifecycle is cleaned up, and unregistered from parent
+///
+/// See also:
+/// - [Timer] - The underlying Dart timer being wrapped
+/// - [TimerRaiiExt.withLifecycle] - Extension method to create managed timers
+/// - [RaiiBox] - Similar pattern for managing other resources
+class RaiiTimer with RaiiLifecycleMixin {
+  /// Creates a new [RaiiTimer] and attaches it to the given [lifecycleAware].
+  ///
+  /// The timer is automatically registered with [lifecycleAware] and will be
+  /// cancelled when [lifecycleAware] is disposed.
+  ///
+  /// Parameters:
+  /// - [lifecycleAware]: The parent lifecycle that will manage this timer
+  /// - [timer]: The underlying [Timer] instance to manage
+  /// - [debugLabel]: Optional label for debugging lifecycle events
+  ///
+  /// Example:
+  /// ```dart
+  /// // Typically created through the extension method:
+  /// final timer = Timer(Duration(seconds: 5), () => print('Done!'))
+  ///     .withLifecycle(this, debugLabel: 'MyTimer');
+  ///
+  /// // But can be created directly:
+  /// final raiiTimer = RaiiTimer.withLifecycle(
+  ///   myComponent,
+  ///   timer: Timer(Duration(seconds: 5), () => print('Done!')),
+  ///   debugLabel: 'MyTimer',
+  /// );
+  /// ```
+  ///
+  /// Note: In most cases, prefer using [TimerRaiiExt.withLifecycle] extension
+  /// method instead of creating [RaiiTimer] instances directly.
+  RaiiTimer.withLifecycle(
+    RaiiLifecycleAware lifecycleAware, {
+    required Timer timer,
+    this.debugLabel,
+  })  : _lifecycleAware = lifecycleAware,
+        _timer = timer {
+    _lifecycleAware.registerLifecycle(this);
+  }
+
+  final RaiiLifecycleAware _lifecycleAware;
+  final Timer _timer;
+
+  /// Optional label for debugging purposes.
+  ///
+  /// When provided, lifecycle events will be logged to the console with this label,
+  /// making it easier to track timer creation and cancellation during development.
+  ///
+  /// Example output:
+  /// ```
+  /// [RAII] Init lifecycle: MyTimer
+  /// [RAII] Dispose lifecycle: MyTimer
+  /// ```
+  final String? debugLabel;
+
+  /// Cancels the timer and disposes its lifecycle.
+  ///
+  /// This method safely cancels the timer and performs proper lifecycle cleanup:
+  /// - Checks if the timer is still active and lifecycle is mounted
+  /// - Cancels the underlying timer
+  /// - Unregisters from the parent lifecycle
+  /// - Performs lifecycle cleanup
+  ///
+  /// After calling [cancel], the timer will not fire and [isActive] will return false.
+  ///
+  /// This method is safe to call multiple times or after the timer has already
+  /// completed. It only performs disposal if the timer is both active and the
+  /// lifecycle is still mounted.
+  ///
+  /// Example:
+  /// ```dart
+  /// final timer = Timer(Duration(seconds: 10), () => print('Hello'))
+  ///     .withLifecycle(this);
+  ///
+  /// // User cancelled the operation
+  /// timer.cancel();
+  ///
+  /// print(timer.isActive); // false
+  ///
+  /// // Safe to call again - no-op
+  /// timer.cancel();
+  /// ```
+  void cancel() {
+    if (isActive && isLifecycleMounted()) {
+      _lifecycleAware.unregisterLifecycle(this);
+      disposeLifecycle();
+    }
+  }
+
+  /// The number of times the timer has fired.
+  ///
+  /// For one-time timers (created with [Timer]), this will be 0 before firing
+  /// and 1 after firing.
+  ///
+  /// For periodic timers (created with [Timer.periodic]), this increments
+  /// each time the callback is invoked.
+  ///
+  /// Example:
+  /// ```dart
+  /// final timer = Timer.periodic(Duration(seconds: 1), (t) {
+  ///   print('Tick ${t.tick}');
+  /// }).withLifecycle(this);
+  ///
+  /// // Later, check how many times it has fired
+  /// print('Timer has fired ${timer.tick} times');
+  /// ```
+  int get tick => _timer.tick;
+
+  /// Whether the timer is still active and waiting to fire.
+  ///
+  /// Returns `true` if the timer has not yet fired (for one-time timers) or
+  /// has not been cancelled (for periodic timers).
+  ///
+  /// Returns `false` if the timer has completed or been cancelled.
+  ///
+  /// Example:
+  /// ```dart
+  /// final timer = Timer(Duration(seconds: 5), () => print('Done'))
+  ///     .withLifecycle(this);
+  ///
+  /// print(timer.isActive); // true
+  ///
+  /// timer.cancel();
+  /// print(timer.isActive); // false
+  /// ```
+  bool get isActive => _timer.isActive;
+
+  @override
+  void initLifecycle() {
+    super.initLifecycle();
+
+    if (debugLabel != null) {
+      raiiTrace('[RAII] Init lifecycle: $debugLabel');
+    }
+  }
+
+  @override
+  void disposeLifecycle() {
+    super.disposeLifecycle();
+
+    if (debugLabel != null) {
+      raiiTrace('[RAII] Dispose lifecycle: $debugLabel');
+    }
+    _timer.cancel();
+  }
+}
+
+/// Extension on [Timer] that adds RAII lifecycle management capabilities.
+///
+/// This extension allows you to attach any [Timer] to a [RaiiLifecycleAware]
+/// object, ensuring automatic cancellation when the lifecycle is disposed.
+///
+/// Example:
+/// ```dart
+/// class MyComponent with RaiiLifecycleMixin {
+///   void setupTimers() {
+///     // One-time timer
+///     Timer(Duration(seconds: 5), () {
+///       print('Executed after 5 seconds');
+///     }).withLifecycle(this);
+///
+///     // Periodic timer
+///     Timer.periodic(Duration(seconds: 1), (timer) {
+///       print('Tick: ${timer.tick}');
+///     }).withLifecycle(this, debugLabel: 'PeriodicTick');
+///
+///     // All timers are automatically cancelled when disposeLifecycle() is called
+///   }
+/// }
+/// ```
+extension TimerRaiiExt on Timer {
+  /// Attaches this timer to a [RaiiLifecycleAware] for automatic lifecycle management.
+  ///
+  /// The timer will be automatically cancelled when [lifecycleAware] is disposed,
+  /// preventing callbacks from executing after the lifecycle has ended.
+  ///
+  /// Parameters:
+  /// - [lifecycleAware]: The parent lifecycle that will manage this timer
+  /// - [debugLabel]: Optional label for debugging lifecycle events
+  ///
+  /// Returns a [RaiiTimer] that wraps this timer and provides additional
+  /// lifecycle management features.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Basic usage
+  /// Timer(Duration(seconds: 3), () => print('Hello'))
+  ///     .withLifecycle(this);
+  ///
+  /// // With debug label
+  /// Timer.periodic(Duration(seconds: 1), (t) => print('Tick'))
+  ///     .withLifecycle(this, debugLabel: 'HeartbeatTimer');
+  ///
+  /// // Store reference for manual cancellation
+  /// final timer = Timer(Duration(seconds: 10), () => print('Done'))
+  ///     .withLifecycle(this);
+  /// timer.cancel(); // Can cancel manually if needed
+  /// ```
+  RaiiTimer withLifecycle(
+    RaiiLifecycleAware lifecycleAware, {
+    String? debugLabel,
+  }) {
+    return RaiiTimer.withLifecycle(
+      lifecycleAware,
+      timer: this,
       debugLabel: debugLabel,
     );
   }
