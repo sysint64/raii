@@ -2,7 +2,7 @@ name: raii
 description: >
   Resource Acquisition Is Initialization (RAII) pattern for Dart,
   providing automated lifecycle management of resources.
-version: 0.3.1
+version: 0.3.2
 repository: https://github.com/sysint64/raii
 issue_tracker: https://github.com/sysint64/raii/issues
 topics: [raii, lifecycle, resource-management, state-management]

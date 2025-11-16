@@ -535,6 +535,10 @@ mixin RaiiManagerMixin
     // Clear list and mark as unmounted before disposal to prevent
     // re-registration during disposal callbacks
     registeredLifecycles.clear();
+
+    // Automatically unregister from holder if we have one.
+    _holder?.unregisterLifecycle(this);
+
     _isLifecycleMounted = false;
     _isDisposed = true;
 

@@ -1,3 +1,6 @@
+## 0.3.2
+* Automatic unregister from holder when `RaiiManagerMixin` get disposed.
+
 ## 0.3.1
 * Update README.md.
 
