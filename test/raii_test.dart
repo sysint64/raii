@@ -273,7 +273,7 @@ void main() {
     );
   });
 
-  group('take', () {
+  group('takeLifecycle', () {
     late RaiiManager ownerA;
     late RaiiManager ownerB;
     late _MyResource resource;
@@ -293,7 +293,7 @@ void main() {
         expect(resource.isLifecycleMounted(), true);
         expect(resource.state, _MyResourceState.init);
 
-        ownerB.take(resource);
+        ownerB.takeLifecycle(resource);
 
         expect(resource.isLifecycleMounted(), true);
         expect(resource.state, _MyResourceState.init);
@@ -308,7 +308,7 @@ void main() {
 
         expect(ownerA.registeredLifecycles, contains(resource));
 
-        ownerB.take(resource);
+        ownerB.takeLifecycle(resource);
 
         expect(ownerA.registeredLifecycles, isNot(contains(resource)));
       },
@@ -322,7 +322,7 @@ void main() {
 
         expect(ownerB.registeredLifecycles, isNot(contains(resource)));
 
-        ownerB.take(resource);
+        ownerB.takeLifecycle(resource);
 
         expect(ownerB.registeredLifecycles, contains(resource));
       },
@@ -334,7 +334,7 @@ void main() {
       () {
         ownerA.registerLifecycle(resource);
 
-        ownerB.take(resource);
+        ownerB.takeLifecycle(resource);
         ownerA.disposeLifecycle();
 
         expect(resource.isLifecycleMounted(), true);
@@ -348,7 +348,7 @@ void main() {
       () {
         ownerA.registerLifecycle(resource);
 
-        ownerB.take(resource);
+        ownerB.takeLifecycle(resource);
         ownerB.disposeLifecycle();
 
         expect(resource.isLifecycleMounted(), false);
@@ -364,7 +364,7 @@ void main() {
 
         expect(resource.raiiHolder, ownerA);
 
-        ownerB.take(resource);
+        ownerB.takeLifecycle(resource);
 
         expect(resource.raiiHolder, ownerB);
       },
@@ -378,7 +378,7 @@ void main() {
         ownerA.disposeLifecycle();
 
         expect(
-          () => ownerB.take(resource),
+          () => ownerB.takeLifecycle(resource),
           throwsA(isA<NotInitializedException>()),
         );
       },
@@ -391,7 +391,7 @@ void main() {
         final uninitResource = _MyResource();
 
         expect(
-          () => ownerB.take(uninitResource),
+          () => ownerB.takeLifecycle(uninitResource),
           throwsA(isA<NotInitializedException>()),
         );
       },
@@ -404,8 +404,8 @@ void main() {
         final ownerC = RaiiManager()..initLifecycle();
 
         ownerA.registerLifecycle(resource);
-        ownerB.take(resource);
-        ownerC.take(resource);
+        ownerB.takeLifecycle(resource);
+        ownerC.takeLifecycle(resource);
 
         expect(ownerA.registeredLifecycles, isNot(contains(resource)));
         expect(ownerB.registeredLifecycles, isNot(contains(resource)));
@@ -432,7 +432,7 @@ void main() {
 
         expect(childResource.isLifecycleMounted(), true);
 
-        parent2.take(childManager);
+        parent2.takeLifecycle(childManager);
 
         expect(parent1.registeredLifecycles, isNot(contains(childManager)));
         expect(parent2.registeredLifecycles, contains(childManager));

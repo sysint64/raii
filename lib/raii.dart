@@ -277,7 +277,7 @@ abstract interface class RaiiLifecycleAware extends RaiiLifecycle {
   /// ownerA.disposeLifecycle(); // resource is NOT disposed
   /// ownerB.disposeLifecycle(); // resource IS disposed
   /// ```
-  void take(RaiiLifecycle lifecycle);
+  void takeLifecycle(RaiiLifecycle lifecycle);
 }
 
 /// A globally accessible [RaiiManager] that never gets disposed.
@@ -559,7 +559,7 @@ mixin RaiiManagerMixin
 
   @override
   @mustCallSuper
-  void take(RaiiLifecycle lifecycle) {
+  void takeLifecycle(RaiiLifecycle lifecycle) {
     if (!lifecycle.isLifecycleMounted()) {
       throw const NotInitializedException();
     }

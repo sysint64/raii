@@ -1,3 +1,6 @@
+## 0.3.4
+* Rename `take` method to `takeLifecycle`.
+
 ## 0.3.3
 * Add `take` method to the `RaiiLifecycleAware`.
 

@@ -218,8 +218,8 @@ mixin RaiiStateMixin<T extends StatefulWidget> on State<T>
   }
 
   @override
-  void take(RaiiLifecycle lifecycle) {
-    _raiiManager.take(lifecycle);
+  void takeLifecycle(RaiiLifecycle lifecycle) {
+    _raiiManager.takeLifecycle(lifecycle);
   }
 }
 
