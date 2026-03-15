@@ -84,6 +84,7 @@ abstract interface class RaiiLifecycle {
   /// Returns `true` if the object has been initialized and not yet disposed,
   /// `false` otherwise.
   bool isLifecycleMounted();
+
 }
 
 /// Interface for lifecycle objects that track their parent holder.
@@ -236,6 +237,47 @@ abstract interface class RaiiLifecycleAware extends RaiiLifecycle {
   /// Returns `true` if the lifecycle was registered and successfully removed,
   /// `false` if it was not registered.
   bool unregisterLifecycle(RaiiLifecycle lifecycle);
+
+  /// Detaches a [RaiiLifecycle] from this container without disposing it.
+  ///
+  /// Unlike [unregisterLifecycle], this method only removes the lifecycle
+  /// from this container's management — it does **not** dispose the lifecycle.
+  /// The lifecycle remains mounted and can be registered with a different owner.
+  ///
+  /// This is used internally by [take] to move a lifecycle between owners
+  /// without interrupting its mounted state.
+  @visibleForOverriding
+  void detachLifecycle(RaiiLifecycle lifecycle);
+
+  /// Takes ownership of a [lifecycle] from its current owner.
+  ///
+  /// Detaches the lifecycle from its current owner (if any) without disposing
+  /// it, then registers it with this container. The lifecycle remains mounted
+  /// throughout the transfer.
+  ///
+  /// This is useful when a resource needs to outlive its original owner
+  /// and be managed by a different lifecycle container.
+  ///
+  /// Throws [NotInitializedException] if the lifecycle has not been initialized.
+  ///
+  /// **Example:**
+  /// ```dart
+  /// final ownerA = RaiiManager()..initLifecycle();
+  /// final ownerB = RaiiManager()..initLifecycle();
+  ///
+  /// final resource = RaiiBox.withLifecycle(
+  ///   ownerA,
+  ///   instance: MyResource(),
+  ///   dispose: (r) => r.cleanup(),
+  /// );
+  ///
+  /// // Move resource from ownerA to ownerB
+  /// ownerB.take(resource);
+  ///
+  /// ownerA.disposeLifecycle(); // resource is NOT disposed
+  /// ownerB.disposeLifecycle(); // resource IS disposed
+  /// ```
+  void take(RaiiLifecycle lifecycle);
 }
 
 /// A globally accessible [RaiiManager] that never gets disposed.
@@ -397,6 +439,7 @@ mixin RaiiLifecycleMixin implements RaiiLifecycle, RaiiLifecycleHolderTracker {
     _isLifecycleMounted = false;
     _isDisposed = true;
   }
+
 }
 
 /// A mixin that implements the [RaiiLifecycleAware] interface with support for managing
@@ -475,7 +518,7 @@ mixin RaiiManagerMixin
     }
 
     // Initialize immediately if manager is already initialized
-    if (_isLifecycleMounted) {
+    if (_isLifecycleMounted && !lifecycle.isLifecycleMounted()) {
       lifecycle.initLifecycle();
     }
   }
@@ -501,6 +544,35 @@ mixin RaiiManagerMixin
     }
 
     return true;
+  }
+
+  @override
+  @mustCallSuper
+  void detachLifecycle(RaiiLifecycle lifecycle) {
+    registeredLifecycles.remove(lifecycle);
+
+    // Clear holder reference to prevent stale references
+    if (lifecycle is RaiiLifecycleHolderTracker) {
+      (lifecycle as RaiiLifecycleHolderTracker).clearRaiiHolder();
+    }
+  }
+
+  @override
+  @mustCallSuper
+  void take(RaiiLifecycle lifecycle) {
+    if (!lifecycle.isLifecycleMounted()) {
+      throw const NotInitializedException();
+    }
+
+    // Detach from current holder without disposing
+    if (lifecycle is RaiiLifecycleHolderTracker) {
+      (lifecycle as RaiiLifecycleHolderTracker).raiiHolder?.detachLifecycle(
+        lifecycle,
+      );
+    }
+
+    // Register with this owner (won't re-init since already mounted)
+    registerLifecycle(lifecycle);
   }
 
   @override

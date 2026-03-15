@@ -110,7 +110,7 @@ class _RaiiHomePageState extends State<RaiiHomePage>
     // Timer
     Timer(
       const Duration(seconds: 5),
-      () => print('Ont-shot: 5 seconds pass'),
+      () => debugPrint('Ont-shot: 5 seconds pass'),
     ).withLifecycle(
       this,
       debugLabel: 'One-shot Timer',
@@ -118,7 +118,7 @@ class _RaiiHomePageState extends State<RaiiHomePage>
 
     Timer.periodic(
       const Duration(seconds: 1),
-      (t) => print('Periodic: ${t.tick} seconds pass'),
+      (t) => debugPrint('Periodic: ${t.tick} seconds pass'),
     ).withLifecycle(
       this,
       debugLabel: 'Periodic Timer',

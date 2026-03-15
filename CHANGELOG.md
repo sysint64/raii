@@ -1,3 +1,6 @@
+## 0.3.3
+* Add `take` method to the `RaiiLifecycleAware`.
+
 ## 0.3.2
 * Automatic unregister from holder when `RaiiManagerMixin` get disposed.
 

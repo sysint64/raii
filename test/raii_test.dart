@@ -273,6 +273,185 @@ void main() {
     );
   });
 
+  group('take', () {
+    late RaiiManager ownerA;
+    late RaiiManager ownerB;
+    late _MyResource resource;
+
+    setUp(() {
+      ownerA = RaiiManager()..initLifecycle();
+      ownerB = RaiiManager()..initLifecycle();
+      resource = _MyResource();
+    });
+
+    test(
+      'resource stays mounted '
+      'when transferred to new owner',
+      () {
+        ownerA.registerLifecycle(resource);
+
+        expect(resource.isLifecycleMounted(), true);
+        expect(resource.state, _MyResourceState.init);
+
+        ownerB.take(resource);
+
+        expect(resource.isLifecycleMounted(), true);
+        expect(resource.state, _MyResourceState.init);
+      },
+    );
+
+    test(
+      'resource is removed from old owner '
+      'when transferred',
+      () {
+        ownerA.registerLifecycle(resource);
+
+        expect(ownerA.registeredLifecycles, contains(resource));
+
+        ownerB.take(resource);
+
+        expect(ownerA.registeredLifecycles, isNot(contains(resource)));
+      },
+    );
+
+    test(
+      'resource is added to new owner '
+      'when transferred',
+      () {
+        ownerA.registerLifecycle(resource);
+
+        expect(ownerB.registeredLifecycles, isNot(contains(resource)));
+
+        ownerB.take(resource);
+
+        expect(ownerB.registeredLifecycles, contains(resource));
+      },
+    );
+
+    test(
+      'resource is not disposed '
+      'when old owner is disposed after transfer',
+      () {
+        ownerA.registerLifecycle(resource);
+
+        ownerB.take(resource);
+        ownerA.disposeLifecycle();
+
+        expect(resource.isLifecycleMounted(), true);
+        expect(resource.state, _MyResourceState.init);
+      },
+    );
+
+    test(
+      'resource is disposed '
+      'when new owner is disposed after transfer',
+      () {
+        ownerA.registerLifecycle(resource);
+
+        ownerB.take(resource);
+        ownerB.disposeLifecycle();
+
+        expect(resource.isLifecycleMounted(), false);
+        expect(resource.state, _MyResourceState.disposed);
+      },
+    );
+
+    test(
+      'holder reference is updated '
+      'when transferred',
+      () {
+        ownerA.registerLifecycle(resource);
+
+        expect(resource.raiiHolder, ownerA);
+
+        ownerB.take(resource);
+
+        expect(resource.raiiHolder, ownerB);
+      },
+    );
+
+    test(
+      'throw NotInitializedException '
+      'when try to take disposed resource',
+      () {
+        ownerA.registerLifecycle(resource);
+        ownerA.disposeLifecycle();
+
+        expect(
+          () => ownerB.take(resource),
+          throwsA(isA<NotInitializedException>()),
+        );
+      },
+    );
+
+    test(
+      'throw NotInitializedException '
+      'when try to transfer non initialized resource',
+      () {
+        final uninitResource = _MyResource();
+
+        expect(
+          () => ownerB.take(uninitResource),
+          throwsA(isA<NotInitializedException>()),
+        );
+      },
+    );
+
+    test(
+      'resource is owned by last owner '
+      'when transferred multiple times',
+      () {
+        final ownerC = RaiiManager()..initLifecycle();
+
+        ownerA.registerLifecycle(resource);
+        ownerB.take(resource);
+        ownerC.take(resource);
+
+        expect(ownerA.registeredLifecycles, isNot(contains(resource)));
+        expect(ownerB.registeredLifecycles, isNot(contains(resource)));
+        expect(ownerC.registeredLifecycles, contains(resource));
+        expect(resource.raiiHolder, ownerC);
+        expect(resource.isLifecycleMounted(), true);
+
+        ownerC.disposeLifecycle();
+        expect(resource.state, _MyResourceState.disposed);
+      },
+    );
+
+    test(
+      'manager and its children are moved '
+      'when manager is transferred between owners',
+      () {
+        final parent1 = RaiiManager()..initLifecycle();
+        final parent2 = RaiiManager()..initLifecycle();
+        final childManager = RaiiManager();
+        final childResource = _MyResource();
+
+        parent1.registerLifecycle(childManager);
+        childManager.registerLifecycle(childResource);
+
+        expect(childResource.isLifecycleMounted(), true);
+
+        parent2.take(childManager);
+
+        expect(parent1.registeredLifecycles, isNot(contains(childManager)));
+        expect(parent2.registeredLifecycles, contains(childManager));
+        expect(childManager.isLifecycleMounted(), true);
+        expect(childResource.isLifecycleMounted(), true);
+
+        // Disposing parent1 should not affect childManager or its children
+        parent1.disposeLifecycle();
+        expect(childManager.isLifecycleMounted(), true);
+        expect(childResource.isLifecycleMounted(), true);
+
+        // Disposing parent2 should dispose childManager and its children
+        parent2.disposeLifecycle();
+        expect(childManager.isLifecycleMounted(), false);
+        expect(childResource.isLifecycleMounted(), false);
+      },
+    );
+  });
+
   group('RaiiBox', () {
     late RaiiManager myRaiiManager;
 

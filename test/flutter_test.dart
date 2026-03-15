@@ -49,6 +49,7 @@ class _TestResources implements RaiiLifecycle {
   void disposeLifecycle() {
     disposedCount += 1;
   }
+
 }
 
 class _UserModel extends ChangeNotifier {

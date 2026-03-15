@@ -209,6 +209,18 @@ mixin RaiiStateMixin<T extends StatefulWidget> on State<T>
 
     return _raiiManager.unregisterLifecycle(lifecycle);
   }
+
+  @override
+  @mustCallSuper
+  void detachLifecycle(RaiiLifecycle lifecycle) {
+    _pendingLifecycles.remove(lifecycle);
+    _raiiManager.detachLifecycle(lifecycle);
+  }
+
+  @override
+  void take(RaiiLifecycle lifecycle) {
+    _raiiManager.take(lifecycle);
+  }
 }
 
 /// A lifecycle implementation that manages the lifecycle of a listener attached to a [Listenable].
