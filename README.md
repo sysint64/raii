@@ -22,7 +22,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  raii: ^0.3.1
+  raii: ^0.3.4
 ```
 
 ## Usage
@@ -320,6 +320,28 @@ class TimerWidgetState extends State<TimerWidget> with RaiiStateMixin {
 final globalResource = MyGlobalResource.withLifecycle(
   alwaysAliveRaiiManager,
 );
+```
+
+### Transferring Lifecycle Ownership
+
+Use `takeLifecycle` to move a resource from one owner to another without disposing it:
+
+```dart
+final ownerA = RaiiManager()..initLifecycle();
+final ownerB = RaiiManager()..initLifecycle();
+
+final resource = RaiiBox.withLifecycle(
+  ownerA,
+  instance: MyResource(),
+  dispose: (r, _) => r.cleanup(),
+  debugLabel: 'MyResource',
+);
+
+// Move resource from ownerA to ownerB
+ownerB.takeLifecycle(resource);
+
+ownerA.disposeLifecycle(); // resource is NOT disposed
+ownerB.disposeLifecycle(); // resource IS disposed
 ```
 
 ## Important Notes
