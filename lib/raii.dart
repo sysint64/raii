@@ -84,7 +84,6 @@ abstract interface class RaiiLifecycle {
   /// Returns `true` if the object has been initialized and not yet disposed,
   /// `false` otherwise.
   bool isLifecycleMounted();
-
 }
 
 /// Interface for lifecycle objects that track their parent holder.
@@ -416,7 +415,11 @@ mixin RaiiLifecycleMixin implements RaiiLifecycle, RaiiLifecycleHolderTracker {
   @mustCallSuper
   void initLifecycle() {
     if (_isLifecycleMounted) {
-      throw const AlreadyInitializedException();
+      assert(() {
+        throw const AlreadyInitializedException();
+      }());
+
+      return;
     }
 
     _isLifecycleMounted = true;
@@ -426,11 +429,17 @@ mixin RaiiLifecycleMixin implements RaiiLifecycle, RaiiLifecycleHolderTracker {
   @mustCallSuper
   void disposeLifecycle() {
     if (_isDisposed) {
-      throw const AlreadyDisposedException();
+      assert(() {
+        throw const AlreadyDisposedException();
+      }());
+
+      return;
     }
 
     if (!_isLifecycleMounted) {
-      throw const NotInitializedException();
+      assert(() {
+        throw const NotInitializedException();
+      }());
     }
 
     // Automatically unregister from holder if we have one.
@@ -439,7 +448,6 @@ mixin RaiiLifecycleMixin implements RaiiLifecycle, RaiiLifecycleHolderTracker {
     _isLifecycleMounted = false;
     _isDisposed = true;
   }
-
 }
 
 /// A mixin that implements the [RaiiLifecycleAware] interface with support for managing
@@ -503,7 +511,11 @@ mixin RaiiManagerMixin
   @mustCallSuper
   void registerLifecycle(RaiiLifecycle lifecycle) {
     if (isDisposed) {
-      throw const ManagerDisposedException();
+      assert(() {
+        throw const ManagerDisposedException();
+      }());
+
+      return;
     }
 
     if (registeredLifecycles.contains(lifecycle)) {
@@ -561,14 +573,16 @@ mixin RaiiManagerMixin
   @mustCallSuper
   void takeLifecycle(RaiiLifecycle lifecycle) {
     if (!lifecycle.isLifecycleMounted()) {
-      throw const NotInitializedException();
+      assert(() {
+        throw const NotInitializedException();
+      }());
     }
 
     // Detach from current holder without disposing
     if (lifecycle is RaiiLifecycleHolderTracker) {
       (lifecycle as RaiiLifecycleHolderTracker).raiiHolder?.detachLifecycle(
-        lifecycle,
-      );
+            lifecycle,
+          );
     }
 
     // Register with this owner (won't re-init since already mounted)
@@ -579,7 +593,11 @@ mixin RaiiManagerMixin
   @mustCallSuper
   void initLifecycle() {
     if (_isLifecycleMounted) {
-      throw const AlreadyInitializedException();
+      assert(() {
+        throw const AlreadyInitializedException();
+      }());
+
+      return;
     }
 
     // Initialize all registered children
@@ -594,11 +612,17 @@ mixin RaiiManagerMixin
   @mustCallSuper
   void disposeLifecycle() {
     if (_isDisposed) {
-      throw const AlreadyDisposedException();
+      assert(() {
+        throw const AlreadyDisposedException();
+      }());
+
+      return;
     }
 
     if (!_isLifecycleMounted) {
-      throw const NotInitializedException();
+      assert(() {
+        throw const NotInitializedException();
+      }());
     }
 
     // Dispose in reverse order (LIFO: last registered, first disposed)

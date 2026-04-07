@@ -189,7 +189,11 @@ mixin RaiiStateMixin<T extends StatefulWidget> on State<T>
   @mustCallSuper
   void registerLifecycle(RaiiLifecycle lifecycle) {
     if (_raiiManager.isDisposed) {
-      throw const ManagerDisposedException();
+      assert(() {
+        throw const ManagerDisposedException();
+      }());
+
+      return;
     }
 
     if (_attached) {

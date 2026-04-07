@@ -1,3 +1,9 @@
+## 0.3.5
+* Don't throw `AlreadyInitializedException` in release build;
+* Don't throw `AlreadyDisposedException` in release build;
+* Don't throw `NotInitializedException` in release build;
+* Don't throw `ManagerDisposedException` in release build.
+
 ## 0.3.4
 * Rename `take` method to `takeLifecycle`.
 
